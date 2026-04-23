@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <ManageSoft connectiontype="ecm" runintransaction="False" />
+  <Imports>
+    <Import Type="SqlServer" Name="__ADAPTER_NAME__" Template="" ConnectionString="__CONNECTION_STRING__" />
+  </Imports>
+</root>

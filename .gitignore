@@ -1,0 +1,6 @@
+# Runtime / wizard / task logs
+Log/
+*.log
+
+# Pester, coverage, ScriptAnalyzer output
+Tests/TestResults/

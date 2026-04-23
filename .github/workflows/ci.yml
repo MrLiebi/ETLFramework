@@ -1,0 +1,50 @@
+# Runs PSScriptAnalyzer + full Pester suite (including code coverage) on Windows PowerShell 5.1.
+# Matches the framework target runtime (not PowerShell 7).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  framework-tests:
+    name: Framework tests (Windows PowerShell 5.1)
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # `powershell` on windows-latest is Windows PowerShell 5.1 (same as framework production target).
+      - name: Install Pester and PSScriptAnalyzer
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+          if ([version]$PSVersionTable.PSVersion -lt [version]'5.1') { throw "Expected Windows PowerShell 5.1+, got $($PSVersionTable.PSVersion)" }
+          & "${{ github.workspace }}/Tests/Install-TestDependencies.ps1"
+
+      - name: Run extended framework tests
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([version]$PSVersionTable.PSVersion -lt [version]'5.1') { throw "Expected Windows PowerShell 5.1+, got $($PSVersionTable.PSVersion)" }
+          & "${{ github.workspace }}/Tests/Invoke-ExtendedFrameworkTests.ps1"
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_id }}
+          path: Tests/TestResults/
+          retention-days: 7
