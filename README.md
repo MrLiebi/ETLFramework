@@ -1,10 +1,8 @@
 # PS ETL Framework
 
-[![CI](https://github.com/MrLiebi/ETLFramework/actions/workflows/ci.yml/badge.svg)](https://github.com/MrLiebi/ETLFramework/actions/workflows/ci.yml)
-
 PowerShell-based **ETL framework** (release **22.x**) for repeatable data pipelines: interactive **project wizard**, modular **sources** and **destinations**, central **logging** and **validation**, optional **adapters** (e.g. Flexera), and integration with the **Windows Credential Manager**.
 
-The framework targets **Windows PowerShell 5.1**. GitHub **CI** runs the full test suite on **5.1** as well.
+The framework targets **Windows PowerShell 5.1**. Run the full test suite locally on **5.1** (see [Tests (local)](#tests-local)).
 
 Documentation, comments, and user-visible messages use **American English** spelling (for example *behavior*, *recognize*, *finalize*).
 
@@ -20,9 +18,8 @@ Documentation, comments, and user-visible messages use **American English** spel
 6. [Run a pipeline](#run-a-pipeline)
 7. [Scheduled execution (task)](#scheduled-execution-task)
 8. [Tests (local)](#tests-local)
-9. [Continuous integration (GitHub)](#continuous-integration-github)
-10. [Further documentation](#further-documentation)
-11. [Versioning](#versioning)
+9. [Further documentation](#further-documentation)
+10. [Versioning](#versioning)
 
 ---
 
@@ -158,21 +155,6 @@ Output files (by default; not committed because of `.gitignore`):
 
 More detail on test layers: [`Tests/README-Extended.md`](Tests/README-Extended.md).  
 Tester notes and coverage hints: [`Tests/TESTER-AUDIT.md`](Tests/TESTER-AUDIT.md).
-
----
-
-## Continuous integration (GitHub)
-
-On **push** and **pull request** to `main`, [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
-
-1. Checkout  
-2. `Tests\Install-TestDependencies.ps1` under **Windows PowerShell 5.1**  
-3. `Tests\Invoke-ExtendedFrameworkTests.ps1` (analyzer + Pester + coverage)  
-4. On failure: uploads `Tests\TestResults\` as an artifact named `test-results-<run_id>`, kept **7 days** (then GitHub deletes it automatically).
-
-Status badge at the top of this README.
-
-To remove old workflow runs from GitHub: **Actions** → **CI** → select runs → **…** → **Delete**. That only affects GitHub metadata and artifacts, not your local clone.
 
 ---
 

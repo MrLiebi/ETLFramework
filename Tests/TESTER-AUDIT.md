@@ -27,7 +27,7 @@ These entry scripts are interactive or have system/admin/COM side effects and ar
 
 ## Note
 
-The review here was static and package-focused. **GitHub Actions** now runs the full suite on **Windows PowerShell 5.1** on every push/PR (see `.github/workflows/ci.yml`).
+The review here was static and package-focused. Run the full suite locally with `Tests\Invoke-ExtendedFrameworkTests.ps1` on **Windows PowerShell 5.1** (this repository does not define GitHub Actions workflows).
 
 ## Latest compatibility fixes
 
