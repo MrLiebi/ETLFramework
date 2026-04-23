@@ -50,7 +50,7 @@ function Invoke-NewEtlProjectWizard {
     try {
         Clear-Host
         Write-Ui "==============================================" -ForegroundColor Magenta
-        Write-Ui "      ETL SOLUTION WIZARD v22.0.0             " -ForegroundColor Magenta
+        Write-Ui "      ETL SOLUTION WIZARD v23.0.0             " -ForegroundColor Magenta
         Write-Ui "==============================================" -ForegroundColor Magenta
 
         Write-Log "--- SCRIPT STARTED ---" -Level 'INFO'

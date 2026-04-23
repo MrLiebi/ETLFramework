@@ -3,7 +3,7 @@
 Flexera Business Adapter module for the ETL framework.
 
 .VERSION
-22.0.0
+23.0.0
 #>
 
 function Resolve-AdapterConfigPath {

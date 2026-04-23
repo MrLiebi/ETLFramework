@@ -8,7 +8,7 @@ collection of PowerShell objects for further processing in the
 ETL pipeline.
 
 .VERSION
-22.0.0
+23.0.0
 #>
 
 $CommonModulePath = Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -ChildPath 'Common\Framework.Common.psm1'

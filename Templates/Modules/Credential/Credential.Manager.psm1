@@ -9,7 +9,7 @@ using the Windows Credential Manager.
 Used by adapters requiring authentication (e.g. MSSQL, LDAP).
 
 .VERSION
-22.0.0
+23.0.0
 
 .AUTHOR
 ETL Framework

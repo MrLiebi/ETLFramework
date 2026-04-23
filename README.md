@@ -1,6 +1,6 @@
 # PS ETL Framework
 
-PowerShell-based **ETL framework** (release **22.x**) for repeatable data pipelines: interactive **project wizard**, modular **sources** and **destinations**, central **logging** and **validation**, optional **adapters** (e.g. Flexera), and integration with the **Windows Credential Manager**.
+PowerShell-based **ETL framework** (release **23.x**) for repeatable data pipelines: interactive **project wizard**, modular **sources** and **destinations**, central **logging** and **validation**, optional **adapters** (e.g. Flexera), and integration with the **Windows Credential Manager**.
 
 The framework targets **Windows PowerShell 5.1**. Run the full test suite locally on **5.1** (see [Tests (local)](#tests-local)).
 
@@ -61,7 +61,7 @@ git clone https://github.com/MrLiebi/ETLFramework.git
 Set-Location .\ETLFramework
 ```
 
-On disk, this is the same tree as after `git clone` or extracting a release ZIP (e.g. `PS-ETL-Framework-v22.0.0`).
+On disk, this is the same tree as after `git clone` or extracting a release ZIP (e.g. `PS-ETL-Framework-v23.0.0`).
 
 ---
 
@@ -170,7 +170,7 @@ Tester notes and coverage hints: [`Tests/TESTER-AUDIT.md`](Tests/TESTER-AUDIT.md
 
 ## Versioning
 
-Current release line in the repository: **22.0.0** (see `CHANGELOG.md` and comments in entry scripts). Use Git **tags** or release branches on GitHub for reproducible snapshots.
+Current release line in the repository: **23.0.0** (see `CHANGELOG.md` and comments in entry scripts). Use Git **tags** or release branches on GitHub for reproducible snapshots.
 
 ---
 

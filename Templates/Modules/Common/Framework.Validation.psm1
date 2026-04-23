@@ -3,7 +3,7 @@
 Shared validation and normalization helpers for the ETL framework.
 
 .VERSION
-22.0.0
+23.0.0
 #>
 
 function Get-ValidatedPropertySelection {

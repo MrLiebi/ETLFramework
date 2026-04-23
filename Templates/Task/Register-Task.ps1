@@ -3,7 +3,7 @@
 Registers a Windows Scheduled Task for an ETL pipeline.
 
 .VERSION
-22.0.0
+23.0.0
 
 .NOTES
 User-visible messages use American English spelling.
