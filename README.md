@@ -170,7 +170,17 @@ Tester notes and coverage hints: [`Tests/TESTER-AUDIT.md`](Tests/TESTER-AUDIT.md
 
 ## Versioning
 
-Current release line in the repository: **23.0.0** (see `CHANGELOG.md` and comments in entry scripts). Use Git **tags** or release branches on GitHub for reproducible snapshots.
+Current release line in the repository: **23.0.0** (see `CHANGELOG.md` and comments in entry scripts).
+
+### GitHub releases (required practice)
+
+Whenever you finish a **local framework release** (version numbers and `CHANGELOG.md` updated on `main`), also publish it on GitHub so others can find binaries, notes, and an exact Git ref:
+
+1. Commit and push the release changes to `main`.
+2. Create an **annotated tag** for that commit, e.g. `git tag -a v23.0.1 -m "PS ETL Framework 23.0.1"` then `git push origin v23.0.1`.
+3. On GitHub, open **[Releases](https://github.com/MrLiebi/ETLFramework/releases)** → **Draft a new release** → choose that tag → set the title (e.g. `23.0.1`) → paste the matching **CHANGELOG** section into the description → **Publish release**.
+
+Optional: attach a ZIP of the framework folder for users who do not use `git clone`. Do **not** move or reuse a tag after publish; create a new patch version instead.
 
 ---
 
