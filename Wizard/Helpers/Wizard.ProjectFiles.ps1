@@ -93,6 +93,75 @@ function Assert-NoUnresolvedTemplateTokens {
     }
 }
 
+function Get-AvailableAdapterTypes {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string] $TemplateRootPath,
+        [Parameter(Mandatory)][ValidateSet('Source','Destination')] [string] $AdapterRole
+    )
+
+    if (-not (Test-PathExists -Path $TemplateRootPath -PathType Container -Description ("{0} template directory" -f $AdapterRole))) {
+        throw ("{0} template directory missing: {1}" -f $AdapterRole, $TemplateRootPath)
+    }
+
+    $Pattern = '^{0}\.(?<Type>.+)\.psm1$' -f [regex]::Escape($AdapterRole)
+    $Types = @(
+        Get-ChildItem -Path $TemplateRootPath -Filter ("{0}.*.psm1" -f $AdapterRole) -File -ErrorAction Stop |
+            ForEach-Object {
+                $Match = [regex]::Match($_.Name, $Pattern)
+                if ($Match.Success) {
+                    [string]$Match.Groups['Type'].Value
+                }
+            } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Sort-Object -Unique
+    )
+
+    if (-not $Types -or $Types.Count -eq 0) {
+        throw ("No {0} adapter templates found in: {1}" -f $AdapterRole, $TemplateRootPath)
+    }
+
+    Write-Log ("Discovered available {0} adapter types: {1}" -f $AdapterRole.ToLowerInvariant(), ($Types -join ', ')) -Level 'INFO'
+    return $Types
+}
+
+function Get-AvailableSourceTypes {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string] $SourceTemplateRootPath
+    )
+
+    return @(Get-AvailableAdapterTypes -TemplateRootPath $SourceTemplateRootPath -AdapterRole 'Source')
+}
+
+function Get-AvailableDestinationTypes {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string] $DestinationTemplateRootPath
+    )
+
+    return @(Get-AvailableAdapterTypes -TemplateRootPath $DestinationTemplateRootPath -AdapterRole 'Destination')
+}
+
+# Backward-compatible aliases for callers that include the Adapter token in the function name.
+function Get-AvailableSourceAdapterTypes {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string] $SourceTemplateRootPath
+    )
+
+    return @(Get-AvailableSourceTypes -SourceTemplateRootPath $SourceTemplateRootPath)
+}
+
+function Get-AvailableDestinationAdapterTypes {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string] $DestinationTemplateRootPath
+    )
+
+    return @(Get-AvailableDestinationTypes -DestinationTemplateRootPath $DestinationTemplateRootPath)
+}
+
 
 
 function Clear-GeneratedProjectArtifacts {

@@ -136,7 +136,7 @@ Describe 'Wizard.ProjectWizard helper' {
                         Config = [ordered]@{ Path = 'INPUT\users.xlsx'; FilePattern = '*.xlsx'; Worksheet = 'Users' }
                         Properties = @('Name','Mail')
                         CreateInput = $true
-                        CredentialSetup = [PSCustomObject]@{ Target = 'src-xlsx' }
+                        CredentialSetup = $null
                     }
                 }
                 'CustomScript' {
@@ -156,7 +156,7 @@ Describe 'Wizard.ProjectWizard helper' {
                     return [PSCustomObject]@{
                         Config = [ordered]@{ Server = 'sql01'; Database = 'DW'; AuthenticationMode = 'Integrated' }
                         CreateOutput = $false
-                        CredentialSetup = [PSCustomObject]@{ Target = 'dst-sql' }
+                        CredentialSetup = $null
                     }
                 }
                 'CSV' {
@@ -203,7 +203,7 @@ Describe 'Wizard.ProjectWizard helper' {
         Test-Path -Path (Join-Path $ProjectRoot 'RUN\Modules\Adapter\Adapter.BAS.xml') | Should -BeTrue
         Test-Path -Path (Join-Path $ProjectRoot 'TASK\AdvancedProject.task.xml') | Should -BeTrue
         Test-Path -Path (Join-Path $ProjectRoot 'TASK\Register-Task.ps1') | Should -BeTrue
-        Assert-MockCalled -CommandName Initialize-ProjectCredential -ModuleName $script:Module.Name -Times 2 -Exactly
+        Assert-MockCalled -CommandName Initialize-ProjectCredential -ModuleName $script:Module.Name -Times 0 -Exactly
         (Get-Content -Path (Join-Path $ProjectRoot 'RUN\config.psd1') -Raw) | Should -Match 'RunCustom'
         $CustomScriptCopy = Join-Path $ProjectRoot 'PS\Step_02_RunCustom_Get-Users.ps1'
         Test-Path -Path $CustomScriptCopy | Should -BeTrue
@@ -242,5 +242,52 @@ Describe 'Wizard.ProjectWizard helper' {
 
         $ExitCode | Should -Be 1
         Assert-MockCalled -CommandName Write-WizardException -ModuleName $script:Module.Name -Times 1 -Exactly
+    }
+
+    It 'discovers source and destination adapter types from template modules' {
+        Mock -ModuleName $script:Module.Name Get-AvailableSourceTypes { @('CSV', 'JSON', 'XLSX') }
+        Mock -ModuleName $script:Module.Name Get-AvailableDestinationTypes { @('CSV', 'MSSQL') }
+
+        $Base = Join-Path -Path $TestDrive -ChildPath 'DynamicDiscoveryBase'
+        New-Item -Path $Base -ItemType Directory -Force | Out-Null
+
+        $InputAnswers = [System.Collections.Generic.Queue[string]]::new()
+        foreach ($Value in @('DynamicProject', $Base, 'Step-01')) { [void]$InputAnswers.Enqueue($Value) }
+        Mock -ModuleName $script:Module.Name Read-InputValue { $InputAnswers.Dequeue() }
+
+        $IntAnswers = [System.Collections.Generic.Queue[int]]::new()
+        foreach ($Value in @(1, 30)) { [void]$IntAnswers.Enqueue($Value) }
+        Mock -ModuleName $script:Module.Name Read-PositiveInteger { $IntAnswers.Dequeue() }
+
+        $ChoiceAnswers = [System.Collections.Generic.Queue[string]]::new()
+        foreach ($Value in @('INFO', 'JSON', 'MSSQL')) { [void]$ChoiceAnswers.Enqueue($Value) }
+        Mock -ModuleName $script:Module.Name Read-Choice { $ChoiceAnswers.Dequeue() }
+
+        Mock -ModuleName $script:Module.Name Get-SourceConfigFromWizard {
+            [PSCustomObject]@{
+                Config = [ordered]@{ Path = 'INPUT\users.json'; FilePattern = '*.json' }
+                Properties = @('*')
+                CreateInput = $true
+                CredentialSetup = $null
+            }
+        }
+        Mock -ModuleName $script:Module.Name Get-DestinationConfigFromWizard {
+            [PSCustomObject]@{
+                Config = [ordered]@{ Server = 'sql01'; Database = 'DW'; AuthenticationMode = 'Integrated'; TableName = 'Users' }
+                CreateOutput = $false
+                CredentialSetup = $null
+            }
+        }
+        Mock -ModuleName $script:Module.Name Read-AdapterConfiguration { [PSCustomObject]@{ AdapterEnabled = $false; Config = [ordered]@{ AdapterEnabled = $false } } }
+        Mock -ModuleName $script:Module.Name Read-ScheduleConfiguration { [PSCustomObject]@{ Enabled = $false } }
+        Mock -ModuleName $script:Module.Name Initialize-ProjectCredential {}
+
+        $ExitCode = Invoke-NewEtlProjectWizard -ScriptPath $script:ScriptPath -ScriptDirectory $script:FrameworkRoot -DefaultBaseDirectory $Base -RequireDotNet:$false
+
+        $ExitCode | Should -Be 0
+        Assert-MockCalled -CommandName Get-AvailableSourceTypes -ModuleName $script:Module.Name -Times 1 -Exactly
+        Assert-MockCalled -CommandName Get-AvailableDestinationTypes -ModuleName $script:Module.Name -Times 1 -Exactly
+        Assert-MockCalled -CommandName Get-SourceConfigFromWizard -ModuleName $script:Module.Name -Times 1 -Exactly -ParameterFilter { $SourceType -eq 'JSON' }
+        Assert-MockCalled -CommandName Get-DestinationConfigFromWizard -ModuleName $script:Module.Name -Times 1 -Exactly -ParameterFilter { $DestinationType -eq 'MSSQL' }
     }
 }
