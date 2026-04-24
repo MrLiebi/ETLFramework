@@ -10,7 +10,7 @@
     Alexander Liebold
 
     .VERSION
-1.0
+1.0.0
 
     .NOTES
     User-visible text and comments follow American English spelling.

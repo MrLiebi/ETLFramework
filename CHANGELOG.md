@@ -4,10 +4,10 @@ All notable changes to this ETL Framework are documented in this file.
 This project follows semantic versioning.
 Documentation and in-script comments and user-visible strings use **American English** spelling (for example *behavior*, *recognize*, *finalize*).
 
-## [1.0] - 2026-04-24
+## [1.0.0] - 2026-04-24
 
 ### Release reference
-- Release metadata for this version is tracked in `ReleaseManifest.psd1` (`Version=1.0`, `Tag=v1.0`) to keep repository-internal traceability even before tag/release publication is externally visible.
+- Release metadata for this version is tracked in `ReleaseManifest.psd1` (`Version=1.0.0`, `Tag=v1.0.0`) to keep repository-internal traceability even before tag/release publication is externally visible.
 
 ### Added
 - Added non-interactive runtime smoke tests for `Templates/Runtime/Run-ETL.ps1` that validate both a successful end-to-end pipeline execution and a failing adapter-import path.
@@ -18,7 +18,7 @@ Documentation and in-script comments and user-visible strings use **American Eng
 - Hardened MSSQL source and destination credential handling by creating SQL connections with `SqlCredential` for `CredentialManager` mode instead of constructing password-bearing connection strings.
 - Updated wizard step configuration flow to use dynamically discovered source/destination type lists instead of hard-coded option arrays.
 - Expanded unit coverage for MSSQL connection construction and wizard template discovery, and updated tester documentation to include the runtime smoke layer.
-- Bumped the framework release line to **1.0** across entry scripts, templates, runtime modules, wizard banner, and documentation.
+- Bumped the framework release line to **1.0.0** across entry scripts, templates, runtime modules, wizard banner, and documentation.
 
 ---
 
@@ -44,7 +44,7 @@ Documentation and in-script comments and user-visible strings use **American Eng
 
 ---
 
-## [0.21.2.5] - 2026-04-21
+## [0.21.2] - 2026-04-21
 
 ### Added
 - Expanded unit coverage for `Destination.MSSQL`, `Source.MSSQL`, and the already-loaded assembly branch in `Framework.Common`.
@@ -55,7 +55,7 @@ Documentation and in-script comments and user-visible strings use **American Eng
 
 ---
 
-## [0.21.2.4] - 2026-04-20
+## [0.21.1] - 2026-04-20
 
 ### Fixed
 - Hardened MSSQL destination SQL literal handling for table drop and staging swap operations.
@@ -70,7 +70,7 @@ Documentation and in-script comments and user-visible strings use **American Eng
 
 ---
 
-## [0.21.2.1] - 2026-04-16
+## [0.21.0] - 2026-04-16
 
 ### Changed
 - Refactored `New-ETLProject.ps1` into a thin entry-point wrapper with bootstrap helpers.

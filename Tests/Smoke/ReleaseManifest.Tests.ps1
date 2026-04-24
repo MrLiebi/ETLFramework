@@ -10,10 +10,10 @@ Describe 'Release manifest traceability' {
     It 'contains latest release metadata fields' {
         Test-Path -Path $script:ReleaseManifestPath -PathType Leaf | Should -BeTrue
         $script:ReleaseManifest.ContainsKey('Latest') | Should -BeTrue
-        $script:ReleaseManifest.Latest.Version | Should -Match '^\d+\.\d+(\.\d+)?$'
-        $script:ReleaseManifest.Latest.Tag | Should -Match '^v\d+\.\d+(\.\d+)?$'
+        $script:ReleaseManifest.Latest.Version | Should -Match '^\d+\.\d+\.\d+$'
+        $script:ReleaseManifest.Latest.Tag | Should -Match '^v\d+\.\d+\.\d+$'
         [string]::IsNullOrWhiteSpace([string]$script:ReleaseManifest.Latest.ReleaseCommit) | Should -BeFalse
-        $script:ReleaseManifest.Latest.ReleaseUrl | Should -Match '^https://github\.com/.+/releases/tag/v\d+\.\d+(\.\d+)?$'
+        $script:ReleaseManifest.Latest.ReleaseUrl | Should -Match '^https://github\.com/.+/releases/tag/v\d+\.\d+\.\d+$'
         [string]::IsNullOrWhiteSpace([string]$script:ReleaseManifest.Latest.Notes) | Should -BeFalse
     }
 
