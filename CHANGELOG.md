@@ -4,6 +4,20 @@ All notable changes to this ETL Framework are documented in this file.
 This project follows semantic versioning.
 Documentation and in-script comments and user-visible strings use **American English** spelling (for example *behavior*, *recognize*, *finalize*).
 
+## [23.1.0] - 2026-04-24
+
+### Added
+- Added non-interactive runtime smoke tests for `Templates/Runtime/Run-ETL.ps1` that validate both a successful end-to-end pipeline execution and a failing adapter-import path.
+- Added dynamic wizard adapter-template discovery helpers so source/destination options are resolved from available `Source.*.psm1` and `Destination.*.psm1` templates.
+
+### Changed
+- Hardened MSSQL source and destination credential handling by creating SQL connections with `SqlCredential` for `CredentialManager` mode instead of constructing password-bearing connection strings.
+- Updated wizard step configuration flow to use dynamically discovered source/destination type lists instead of hard-coded option arrays.
+- Expanded unit coverage for MSSQL connection construction and wizard template discovery, and updated tester documentation to include the runtime smoke layer.
+- Bumped the framework release line to **23.1.0** across entry scripts, templates, runtime modules, wizard banner, and documentation.
+
+---
+
 ## [23.0.0] - 2026-04-23
 
 ### Changed

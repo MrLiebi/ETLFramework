@@ -3,6 +3,7 @@ Set-StrictMode -Version Latest
 
 Describe 'Wizard.ProjectFiles helpers' {
     BeforeAll {
+        . (Join-Path -Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSCommandPath))) -ChildPath 'TestHelpers.ps1')
         $script:Module = Import-TestableAsset -RelativePath 'Wizard/Helpers/Wizard.ProjectFiles.ps1' -ModuleName 'Wizard.ProjectFiles.Tests' -AdditionalRelativePaths @(
             'Wizard/Helpers/Wizard.Paths.ps1'
         )
@@ -47,7 +48,7 @@ Describe 'Wizard.ProjectFiles helpers' {
             $TargetPath = Copy-CustomSourceScriptToProject -SourcePath $SourcePath -ProjectScriptDirectory $ProjectScriptDirectory -StepId '07' -StepName 'Users: EU/West'
 
             Test-Path -Path $TargetPath -PathType Leaf | Should -BeTrue
-            [System.IO.Path]::GetFileName($TargetPath) | Should -Match '^Step_07_Users_ EU_West_Get-Users\.ps1$'
+            [System.IO.Path]::GetFileName($TargetPath) | Should -Match '^Step_07_Users: EU_West_Get-Users\.ps1$'
         }
     }
 
@@ -71,6 +72,27 @@ Describe 'Wizard.ProjectFiles helpers' {
             Test-Path -Path (Join-Path -Path $ProjectRoot -ChildPath 'TASK') | Should -BeFalse
             Test-Path -Path (Join-Path -Path $ProjectRoot -ChildPath 'PS') | Should -BeFalse
             Test-Path -Path (Join-Path -Path $ProjectRoot -ChildPath 'LOG') | Should -BeTrue
+        }
+    }
+
+    Context 'Get-AvailableAdapterTypes' {
+        It 'discovers adapter types from module template file names' {
+            $TemplateRoot = Join-Path -Path $TestDrive -ChildPath 'Templates'
+            New-Item -Path $TemplateRoot -ItemType Directory -Force | Out-Null
+            'source' | Set-Content -Path (Join-Path -Path $TemplateRoot -ChildPath 'Source.CSV.psm1') -Encoding UTF8
+            'source' | Set-Content -Path (Join-Path -Path $TemplateRoot -ChildPath 'Source.JSON.psm1') -Encoding UTF8
+            'ignore' | Set-Content -Path (Join-Path -Path $TemplateRoot -ChildPath 'Other.psm1') -Encoding UTF8
+
+            $Types = Get-AvailableAdapterTypes -TemplateRootPath $TemplateRoot -AdapterRole 'Source'
+            $Types | Should -Be @('CSV', 'JSON')
+        }
+
+        It 'throws when no matching module templates are present' {
+            $TemplateRoot = Join-Path -Path $TestDrive -ChildPath 'EmptyTemplates'
+            New-Item -Path $TemplateRoot -ItemType Directory -Force | Out-Null
+
+            { Get-AvailableAdapterTypes -TemplateRootPath $TemplateRoot -AdapterRole 'Destination' } |
+                Should -Throw '*No Destination adapter templates found*'
         }
     }
 }

@@ -10,7 +10,7 @@ Used by the ETL runtime and all adapter modules to ensure consistent
 behavior across the framework.
 
 .VERSION
-23.0.0
+23.1.0
 
 .AUTHOR
 ETL Framework

@@ -9,7 +9,7 @@ objects for further ETL processing. Supports direct file selection or folder
 actions.
 
 .VERSION
-23.0.0
+23.1.0
 #>
 
 $CommonModulePath = Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -ChildPath 'Common\Framework.Common.psm1'

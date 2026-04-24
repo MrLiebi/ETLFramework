@@ -1,7 +1,7 @@
 
 @{
     'New-ETLProject.ps1' = @{ Coverage = @('Syntax', 'Analyzer'); Notes = 'Refactored wizard wrapper with minimal entry logic.' }
-    'Templates/Runtime/Run-ETL.ps1' = @{ Coverage = @('Syntax', 'Analyzer'); Notes = 'Runtime entry script; not executed in automated tests.' }
+    'Templates/Runtime/Run-ETL.ps1' = @{ Coverage = @('Syntax', 'Analyzer', 'Smoke'); Notes = 'Runtime entry script; covered by non-interactive runtime smoke tests and not full integration tests.' }
     'Templates/Task/Register-Task.ps1' = @{ Coverage = @('Syntax', 'Analyzer'); Notes = 'Task registration; COM/admin rights.' }
 
     'Templates/Modules/Adapter/Adapter.Flexera.psm1' = @{ Coverage = @('Syntax', 'Analyzer', 'ModuleExports'); Notes = 'Adapter module with export/import smoke test.' }

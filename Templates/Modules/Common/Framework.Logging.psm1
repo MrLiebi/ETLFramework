@@ -7,7 +7,7 @@ Provides consistent log-level handling, log retention, file creation,
 and structured error logging for runtime, setup, tooling, and modules.
 
 .VERSION
-23.0.0
+23.1.0
 #>
 
 $Script:EtlLogRetentionState = @{}

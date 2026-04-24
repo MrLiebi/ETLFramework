@@ -10,7 +10,7 @@ This module implements the Invoke-Load entry point used by
 the ETL runtime.
 
 .VERSION
-23.0.0
+23.1.0
 
 .AUTHOR
 ETL Framework
@@ -159,7 +159,7 @@ function Get-SqlConnectionCredential {
     }
 
     Import-EtlCredentialSupport -ModuleRoot $PSScriptRoot
-    return Get-StoredCredential -Target ([string]$Config.CredentialTarget) -AsNetworkCredential
+    return Get-StoredCredential -Target ([string]$Config.CredentialTarget)
 }
 
 function Get-SqlConnectionString {
@@ -175,11 +175,82 @@ function Get-SqlConnectionString {
     $AuthenticationMode = Get-AuthenticationMode -Config $Config
 
     if ($AuthenticationMode -eq 'CredentialManager') {
-        $Credential = Get-SqlConnectionCredential -Config $Config
-        return "Server={0};Database={1};User ID={2};Password={3}" -f $Config.Server, $Config.Database, $Credential.UserName, $Credential.Password
+        return "Server={0};Database={1};Persist Security Info=False" -f $Config.Server, $Config.Database
     }
 
     return "Server={0};Database={1};Integrated Security=True" -f $Config.Server, $Config.Database
+}
+
+function ConvertTo-SecurePasswordForSql {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [AllowNull()] $Password
+    )
+
+    if ($Password -is [System.Security.SecureString]) {
+        return $Password
+    }
+
+    $SecurePassword = New-Object System.Security.SecureString
+    $PasswordText = if ($null -eq $Password) { '' } else { [string]$Password }
+    if (-not [string]::IsNullOrEmpty($PasswordText)) {
+        foreach ($Character in $PasswordText.ToCharArray()) {
+            $SecurePassword.AppendChar($Character)
+        }
+    }
+
+    $SecurePassword.MakeReadOnly()
+    return $SecurePassword
+}
+
+function New-SqlConnection {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [Parameter(Mandatory)][hashtable] $Config
+    )
+
+    if ($Config.ConnectionString) {
+        return [System.Data.SqlClient.SqlConnection]::new([string]$Config.ConnectionString)
+    }
+
+    $AuthenticationMode = Get-AuthenticationMode -Config $Config
+    if ($AuthenticationMode -eq 'CredentialManager') {
+        $Credential = Get-SqlConnectionCredential -Config $Config
+        $CredentialUserName = if ($Credential -is [System.Management.Automation.PSCredential]) {
+            [string]$Credential.UserName
+        }
+        elseif ($Credential.PSObject.Properties['UserName']) {
+            [string]$Credential.UserName
+        }
+        else {
+            throw 'Credential target did not provide a usable SQL username.'
+        }
+        if ([string]::IsNullOrWhiteSpace($CredentialUserName)) {
+            throw 'Credential target returned an empty SQL username.'
+        }
+
+        $CredentialPasswordValue = if ($Credential -is [System.Management.Automation.PSCredential]) {
+            $Credential.Password
+        }
+        elseif ($Credential.PSObject.Properties['Password']) {
+            $Credential.Password
+        }
+        else {
+            throw 'Credential target did not provide a usable SQL password.'
+        }
+
+        $ConnectionBuilder = New-Object System.Data.SqlClient.SqlConnectionStringBuilder
+        $ConnectionBuilder['Data Source'] = [string]$Config.Server
+        $ConnectionBuilder['Initial Catalog'] = [string]$Config.Database
+        $ConnectionBuilder['Integrated Security'] = $false
+        $ConnectionBuilder['Persist Security Info'] = $false
+
+        $SecurePassword = ConvertTo-SecurePasswordForSql -Password $CredentialPasswordValue
+        $SqlCredential = New-Object System.Data.SqlClient.SqlCredential($CredentialUserName, $SecurePassword)
+        return [System.Data.SqlClient.SqlConnection]::new($ConnectionBuilder.ConnectionString, $SqlCredential)
+    }
+
+    return [System.Data.SqlClient.SqlConnection]::new((Get-SqlConnectionString -Config $Config))
 }
 
 function Assert-NonInteractiveSqlConnectionAllowed {
@@ -1169,8 +1240,7 @@ function Open-StreamingLoadIfNeeded {
         return
     }
 
-    $ConnectionString = Get-SqlConnectionString -Config $Config
-    $State.Connection = New-Object System.Data.SqlClient.SqlConnection($ConnectionString)
+    $State.Connection = New-SqlConnection -Config $Config
     $State.Connection.Open()
 
     Write-ModuleLog "SQL connection opened successfully." -Level "INFO"

@@ -10,7 +10,7 @@ This module implements the Invoke-Load entry point used by
 the ETL runtime.
 
 .VERSION
-23.0.0
+23.1.0
 
 .AUTHOR
 ETL Framework

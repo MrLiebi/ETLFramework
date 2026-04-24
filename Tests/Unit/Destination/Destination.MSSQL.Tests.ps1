@@ -52,7 +52,7 @@ Describe 'Destination.MSSQL module' {
                 Mock -ModuleName 'Destination.MSSQL' Get-SqlConnectionCredential { [pscustomobject]@{ UserName = 'etl'; Password = 's3cr3t' } }
 
                 Get-SqlConnectionString -Config @{ Server = 'sql01'; Database = 'FNMS'; CredentialTarget = 'Target/One' } |
-                    Should -Be 'Server=sql01;Database=FNMS;User ID=etl;Password=s3cr3t'
+                    Should -Be 'Server=sql01;Database=FNMS;Persist Security Info=False'
             }
 
             It 'returns null when no credential-manager mode is active' {
@@ -66,6 +66,51 @@ Describe 'Destination.MSSQL module' {
 
                 { Get-SqlConnectionCredential -Config @{ AuthenticationMode = 'CredentialManager' } } |
                     Should -Throw '*CredentialTarget for AuthenticationMode=CredentialManager*'
+            }
+        }
+
+        Context 'SQL connection construction' {
+            It 'creates a SqlConnection from an explicit connection string' {
+                $Connection = New-SqlConnection -Config @{ ConnectionString = 'Server=override;Database=Demo;' }
+                try {
+                    $Connection | Should -BeOfType ([System.Data.SqlClient.SqlConnection])
+                    $Connection.ConnectionString | Should -Be 'Server=override;Database=Demo;'
+                }
+                finally {
+                    $Connection.Dispose()
+                }
+            }
+
+            It 'creates a SqlConnection using integrated security when not in credential mode' {
+                Mock -ModuleName 'Destination.MSSQL' Get-AuthenticationMode { 'WindowsAuthentication' }
+
+                $Connection = New-SqlConnection -Config @{ Server = 'sql01'; Database = 'FNMS' }
+                try {
+                    $Connection | Should -BeOfType ([System.Data.SqlClient.SqlConnection])
+                    $Connection.ConnectionString | Should -Be 'Server=sql01;Database=FNMS;Integrated Security=True'
+                }
+                finally {
+                    $Connection.Dispose()
+                }
+            }
+
+            It 'creates a SqlConnection with SqlCredential in credential-manager mode' {
+                Mock -ModuleName 'Destination.MSSQL' Get-AuthenticationMode { 'CredentialManager' }
+                Mock -ModuleName 'Destination.MSSQL' Get-SqlConnectionCredential { [pscustomobject]@{ UserName = 'etl'; Password = 's3cr3t' } }
+
+                $Connection = New-SqlConnection -Config @{ Server = 'sql01'; Database = 'FNMS'; CredentialTarget = 'Target/One' }
+                try {
+                    $Connection | Should -BeOfType ([System.Data.SqlClient.SqlConnection])
+                    $Connection.ConnectionString | Should -Match 'Data Source=sql01'
+                    $Connection.ConnectionString | Should -Match 'Initial Catalog=FNMS'
+                    $Connection.ConnectionString | Should -Match 'Persist Security Info=False'
+                    $Connection.ConnectionString | Should -Not -Match 'Password='
+                    $Connection.Credential | Should -Not -BeNullOrEmpty
+                    $Connection.Credential.UserId | Should -Be 'etl'
+                }
+                finally {
+                    $Connection.Dispose()
+                }
             }
         }
 

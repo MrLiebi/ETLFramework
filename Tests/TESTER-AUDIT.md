@@ -19,11 +19,11 @@ All prose in this document uses **American English** spelling, consistent with t
 ## Intentionally not executed in automation
 
 - `New-ETLProject.ps1`  
-- `Templates/Runtime/Run-ETL.ps1`  
+- `Templates/Runtime/Run-ETL.ps1` (full production flow is not executed directly; a dedicated mocked runtime smoke test validates non-interactive orchestration behavior)  
 - `Templates/Task/Register-Task.ps1`  
 - `Wizard/Helpers/Wizard.PreReqs.ps1` (direct unit tests and indirect wizard flow only; no real installer execution)  
 
-These entry scripts are interactive or have system/admin/COM side effects and are therefore covered via syntax, analyzer, and manifest checks.
+These entry scripts are interactive or have system/admin/COM side effects and are therefore covered via syntax, analyzer, and manifest checks. For `Run-ETL.ps1`, a dedicated non-interactive runtime smoke test additionally validates orchestration behavior and exit-code handling.
 
 ## Note
 

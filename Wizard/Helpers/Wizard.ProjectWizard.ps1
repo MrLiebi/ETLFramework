@@ -50,7 +50,7 @@ function Invoke-NewEtlProjectWizard {
     try {
         Clear-Host
         Write-Ui "==============================================" -ForegroundColor Magenta
-        Write-Ui "      ETL SOLUTION WIZARD v23.0.0             " -ForegroundColor Magenta
+        Write-Ui "      ETL SOLUTION WIZARD v23.1.0             " -ForegroundColor Magenta
         Write-Ui "==============================================" -ForegroundColor Magenta
 
         Write-Log "--- SCRIPT STARTED ---" -Level 'INFO'
@@ -162,6 +162,19 @@ function Invoke-NewEtlProjectWizard {
         Write-Log "Resolved task directory: $TaskDir" -Level 'INFO'
         Write-Log "Resolved custom script directory: $CustomScriptDir" -Level 'INFO'
 
+        $AvailableSourceTypes = @(Get-AvailableSourceTypes -SourceTemplateRootPath $SourceTemplateRootPath)
+        if (-not $AvailableSourceTypes -or $AvailableSourceTypes.Count -eq 0) {
+            throw "No source adapter templates found under: $SourceTemplateRootPath"
+        }
+
+        $AvailableDestinationTypes = @(Get-AvailableDestinationTypes -DestinationTemplateRootPath $DestinationTemplateRootPath)
+        if (-not $AvailableDestinationTypes -or $AvailableDestinationTypes.Count -eq 0) {
+            throw "No destination adapter templates found under: $DestinationTemplateRootPath"
+        }
+
+        Write-Log ("Discovered source adapter templates: {0}" -f ($AvailableSourceTypes -join ', ')) -Level 'INFO'
+        Write-Log ("Discovered destination adapter templates: {0}" -f ($AvailableDestinationTypes -join ', ')) -Level 'INFO'
+
         $StepCount = Read-PositiveInteger -Prompt 'How many ETL steps should be created?' -Default 1
         $LogLevel = Read-Choice -Title 'SELECT LOG LEVEL' -Options @('INFO', 'DEBUG')
         $RetentionDays = [string](Read-PositiveInteger -Prompt 'Log retention days' -Default 30)
@@ -187,10 +200,10 @@ function Invoke-NewEtlProjectWizard {
 
             $StepName = Read-InputValue -Prompt ("Step Name for [{0}]" -f $StepId) -Default ("Step-{0}" -f $StepId)
 
-            $SourceType = Read-Choice -Title ("SELECT SOURCE FOR STEP [{0}]" -f $StepId) -Options @('LDAP', 'MSSQL', 'CSV', 'XLSX', 'XML', 'JSON', 'CustomScript')
+            $SourceType = Read-Choice -Title ("SELECT SOURCE FOR STEP [{0}]" -f $StepId) -Options $AvailableSourceTypes
             $SourceData = Get-SourceConfigFromWizard -SourceType $SourceType -ProjectName $ProjectName -StepId $StepId
 
-            $DestinationType = Read-Choice -Title ("SELECT DESTINATION FOR STEP [{0}]" -f $StepId) -Options @('MSSQL', 'CSV')
+            $DestinationType = Read-Choice -Title ("SELECT DESTINATION FOR STEP [{0}]" -f $StepId) -Options $AvailableDestinationTypes
             $DestinationData = Get-DestinationConfigFromWizard -DestinationType $DestinationType -ProjectName $ProjectName -StepId $StepId
 
             if ($RequiredSourceTypes -notcontains $SourceType) { [void]$RequiredSourceTypes.Add($SourceType) }
