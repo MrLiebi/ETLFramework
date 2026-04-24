@@ -58,6 +58,21 @@ function Get-FrameworkSourceFiles {
         Sort-Object -Property FullName
 }
 
+function Get-FrameworkManifestTrackedFiles {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [string]$FrameworkRoot = (Get-FrameworkRoot)
+    )
+
+    Get-ChildItem -Path $FrameworkRoot -Recurse -File -Include *.ps1, *.psm1, *.exe |
+        Where-Object {
+            $_.FullName -notmatch '[\\/](Tests|\.git)[\\/]' -and
+            $_.FullName -notmatch '[\\/]Templates[\\/]Modules[\\/]Dependencies[\\/]' -and
+            $_.FullName -notmatch '[\\/]\.github[\\/]'
+        } |
+        Sort-Object -Property FullName
+}
+
 function Get-ScriptAnalyzerTargetFiles {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param(

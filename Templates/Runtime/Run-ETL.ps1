@@ -107,7 +107,7 @@ function Test-LogLevelEnabled {
     Test-EtlLogLevelEnabled -ConfiguredLevel $ConfiguredLevel -MessageLevel $MessageLevel
 }
 
-function Write-Log {
+function Write-EtlRuntimeLog {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)][string] $Message,
@@ -158,11 +158,11 @@ function Test-PathExists {
     )
 
     if (-not (Test-Path -Path $Path -PathType $PathType)) {
-        Write-Log "$Description not found: $Path" -Level "ERROR"
+        Write-EtlRuntimeLog "$Description not found: $Path" -Level "ERROR"
         return $false
     }
 
-    Write-Log "$Description validated: $Path" -Level "INFO"
+    Write-EtlRuntimeLog "$Description validated: $Path" -Level "INFO"
     return $true
 }
 
@@ -241,7 +241,7 @@ function Test-EtlConfiguration {
 
         foreach ($Pipeline in $ResolvedPipelines) {
             if (-not $Pipeline.StepEnabled) {
-                Write-Log ("Step [{0}] is disabled in config. Validation of Source/Destination settings is skipped." -f $Pipeline.StepId) -Level "INFO"
+                Write-EtlRuntimeLog ("Step [{0}] is disabled in config. Validation of Source/Destination settings is skipped." -f $Pipeline.StepId) -Level "INFO"
                 continue
             }
 
@@ -261,11 +261,11 @@ function Test-EtlConfiguration {
             }
         }
 
-        Write-Log "ETL configuration structure validated successfully." -Level "INFO"
+        Write-EtlRuntimeLog "ETL configuration structure validated successfully." -Level "INFO"
         return $true
     }
     catch {
-        Write-Log "ETL configuration validation failed: $($_.Exception.Message)" -Level "ERROR"
+        Write-EtlRuntimeLog "ETL configuration validation failed: $($_.Exception.Message)" -Level "ERROR"
         return $false
     }
 }
@@ -293,7 +293,7 @@ function Import-EtlSupportModules {
         }
 
         Import-Module -Name $SupportModule.Path -Force -ErrorAction Stop
-        Write-Log "$($SupportModule.Name) support module imported successfully: $($SupportModule.Path)" -Level 'INFO'
+        Write-EtlRuntimeLog "$($SupportModule.Name) support module imported successfully: $($SupportModule.Path)" -Level 'INFO'
     }
 }
 
@@ -312,11 +312,11 @@ function Import-EtlAdapterModule {
         }
 
         $ImportedModule = Import-Module -Name $ModulePath -Force -PassThru -ErrorAction Stop
-        Write-Log "$AdapterRole adapter imported successfully: Type=$AdapterType | Path=$ModulePath" -Level "INFO"
+        Write-EtlRuntimeLog "$AdapterRole adapter imported successfully: Type=$AdapterType | Path=$ModulePath" -Level "INFO"
         return $ImportedModule
     }
     catch {
-        Write-Log "Failed to import $AdapterRole adapter [$AdapterType]: $($_.Exception.Message)" -Level "ERROR"
+        Write-EtlRuntimeLog "Failed to import $AdapterRole adapter [$AdapterType]: $($_.Exception.Message)" -Level "ERROR"
         return $null
     }
 }
@@ -436,10 +436,10 @@ function Initialize-ModuleRuntimeContext {
         $env:ETL_MODULE_LOGS = 'True'
     }
 
-    Write-Log "RunId: $($env:ETL_RUN_ID)" -Level "INFO"
-    Write-Log "ModuleLogRoot: $($env:ETL_LOG_ROOT)" -Level "INFO"
-    Write-Log "ModuleLogLevel: $($env:ETL_LOG_LEVEL)" -Level "INFO"
-    Write-Log "ModuleLogsEnabled: $($env:ETL_MODULE_LOGS)" -Level "INFO"
+    Write-EtlRuntimeLog "RunId: $($env:ETL_RUN_ID)" -Level "INFO"
+    Write-EtlRuntimeLog "ModuleLogRoot: $($env:ETL_LOG_ROOT)" -Level "INFO"
+    Write-EtlRuntimeLog "ModuleLogLevel: $($env:ETL_LOG_LEVEL)" -Level "INFO"
+    Write-EtlRuntimeLog "ModuleLogsEnabled: $($env:ETL_MODULE_LOGS)" -Level "INFO"
 }
 
 function Clear-ModuleRuntimeContext {
@@ -544,12 +544,12 @@ function Invoke-PostImportSourceFileActions {
 
     $SelectedSourceFile = $env:ETL_LAST_SOURCE_FILE
     if ([string]::IsNullOrWhiteSpace($SelectedSourceFile)) {
-        Write-Log ("Step [{0}] source file post-processing skipped because no selected source file was registered by the source adapter." -f $Pipeline.StepId) -Level 'WARN'
+        Write-EtlRuntimeLog ("Step [{0}] source file post-processing skipped because no selected source file was registered by the source adapter." -f $Pipeline.StepId) -Level 'WARN'
         return
     }
 
     if (-not (Test-Path -Path $SelectedSourceFile -PathType Leaf)) {
-        Write-Log ("Step [{0}] source file post-processing skipped because the selected source file no longer exists: {1}" -f $Pipeline.StepId, $SelectedSourceFile) -Level 'WARN'
+        Write-EtlRuntimeLog ("Step [{0}] source file post-processing skipped because the selected source file no longer exists: {1}" -f $Pipeline.StepId, $SelectedSourceFile) -Level 'WARN'
         return
     }
 
@@ -560,7 +560,7 @@ function Invoke-PostImportSourceFileActions {
     $BackupPath = if ($SourceConfig.ContainsKey('BackupPath') -and -not [string]::IsNullOrWhiteSpace([string]$SourceConfig.BackupPath)) { [string]$SourceConfig.BackupPath } else { 'INPUT\_Backup' }
 
     if (-not $BackupAfterImport -and -not $DeleteAfterImport) {
-        Write-Log ("Step [{0}] no post-import source file actions requested for file: {1}" -f $Pipeline.StepId, $SelectedSourceFile) -Level 'DEBUG'
+        Write-EtlRuntimeLog ("Step [{0}] no post-import source file actions requested for file: {1}" -f $Pipeline.StepId, $SelectedSourceFile) -Level 'DEBUG'
         return
     }
 
@@ -568,19 +568,19 @@ function Invoke-PostImportSourceFileActions {
         $ResolvedBackupRoot = Resolve-NormalizedPath -Path $BackupPath -BasePath $ProjectRootPath
         if (-not (Test-Path -Path $ResolvedBackupRoot -PathType Container)) {
             New-Item -Path $ResolvedBackupRoot -ItemType Directory -Force | Out-Null
-            Write-Log ("Step [{0}] created backup target directory: {1}" -f $Pipeline.StepId, $ResolvedBackupRoot) -Level 'INFO'
+            Write-EtlRuntimeLog ("Step [{0}] created backup target directory: {1}" -f $Pipeline.StepId, $ResolvedBackupRoot) -Level 'INFO'
         }
 
         $Timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
         $TargetFileName = '{0}_{1}{2}' -f [System.IO.Path]::GetFileNameWithoutExtension($SelectedSourceFile), $Timestamp, [System.IO.Path]::GetExtension($SelectedSourceFile)
         $BackupFilePath = Join-Path -Path $ResolvedBackupRoot -ChildPath $TargetFileName
         Copy-Item -Path $SelectedSourceFile -Destination $BackupFilePath -Force -ErrorAction Stop
-        Write-Log ("Step [{0}] backed up source file: {1} -> {2}" -f $Pipeline.StepId, $SelectedSourceFile, $BackupFilePath) -Level 'INFO'
+        Write-EtlRuntimeLog ("Step [{0}] backed up source file: {1} -> {2}" -f $Pipeline.StepId, $SelectedSourceFile, $BackupFilePath) -Level 'INFO'
     }
 
     if ($DeleteAfterImport) {
         Remove-Item -Path $SelectedSourceFile -Force -ErrorAction Stop
-        Write-Log ("Step [{0}] deleted source file after successful import: {1}" -f $Pipeline.StepId, $SelectedSourceFile) -Level 'WARN'
+        Write-EtlRuntimeLog ("Step [{0}] deleted source file after successful import: {1}" -f $Pipeline.StepId, $SelectedSourceFile) -Level 'WARN'
     }
 }
 
@@ -613,11 +613,11 @@ function Invoke-EtlStep {
         Set-EtlStepRuntimeContext -Pipeline $Pipeline
         Clear-EtlSourceRuntimeContext
 
-        Write-Log ("Executing ETL step [{0}] {1}: [{2}] --> [{3}]" -f $StepId, $StepName, $SourceType, $DestinationType) -Level "INFO"
-        Write-Log ("Step [{0}] property selection: {1}" -f $StepId, (($Properties | ForEach-Object { $_ }) -join ', ')) -Level "INFO"
-        Write-Log ("Step [{0}] source config keys: {1}" -f $StepId, (($Pipeline.Source.Config.Keys | Sort-Object) -join ', ')) -Level "INFO"
-        Write-Log ("Step [{0}] destination config keys: {1}" -f $StepId, (($Pipeline.Destination.Config.Keys | Sort-Object) -join ', ')) -Level "INFO"
-        Write-Log ("Step [{0}] pipeline handoff tracing activated." -f $StepId) -Level "INFO"
+        Write-EtlRuntimeLog ("Executing ETL step [{0}] {1}: [{2}] --> [{3}]" -f $StepId, $StepName, $SourceType, $DestinationType) -Level "INFO"
+        Write-EtlRuntimeLog ("Step [{0}] property selection: {1}" -f $StepId, (($Properties | ForEach-Object { $_ }) -join ', ')) -Level "INFO"
+        Write-EtlRuntimeLog ("Step [{0}] source config keys: {1}" -f $StepId, (($Pipeline.Source.Config.Keys | Sort-Object) -join ', ')) -Level "INFO"
+        Write-EtlRuntimeLog ("Step [{0}] destination config keys: {1}" -f $StepId, (($Pipeline.Destination.Config.Keys | Sort-Object) -join ', ')) -Level "INFO"
+        Write-EtlRuntimeLog ("Step [{0}] pipeline handoff tracing activated." -f $StepId) -Level "INFO"
 
         & $ExtractCommand -Config $Pipeline.Source.Config -Properties $Properties |
             ForEach-Object {
@@ -626,10 +626,10 @@ function Invoke-EtlStep {
                 if (-not $FirstRowLogged) {
                     $FirstRowLogged = $true
                     try {
-                        Write-Log ("Step [{0}] first pipeline handoff preview: {1}" -f $StepId, (Get-PipelineObjectPreview -InputObject $_)) -Level "INFO"
+                        Write-EtlRuntimeLog ("Step [{0}] first pipeline handoff preview: {1}" -f $StepId, (Get-PipelineObjectPreview -InputObject $_)) -Level "INFO"
                     }
                     catch {
-                        Write-Log ("Step [{0}] first pipeline handoff preview unavailable: {1}" -f $StepId, $_.Exception.Message) -Level "WARN"
+                        Write-EtlRuntimeLog ("Step [{0}] first pipeline handoff preview unavailable: {1}" -f $StepId, $_.Exception.Message) -Level "WARN"
                     }
                 }
 
@@ -642,17 +642,17 @@ function Invoke-EtlStep {
         $StepStopWatch.Stop()
 
         if ($PipelineRows -eq 0) {
-            Write-Log ("ETL step [{0}] completed successfully with zero rows transferred. Duration: {1}" -f $StepId, $StepStopWatch.Elapsed.ToString("hh\:mm\:ss\.fff")) -Level "WARN"
+            Write-EtlRuntimeLog ("ETL step [{0}] completed successfully with zero rows transferred. Duration: {1}" -f $StepId, $StepStopWatch.Elapsed.ToString("hh\:mm\:ss\.fff")) -Level "WARN"
         }
         else {
-            Write-Log ("ETL step [{0}] completed successfully. Rows transferred: [{1}] | Duration: {2}" -f $StepId, $PipelineRows, $StepStopWatch.Elapsed.ToString("hh\:mm\:ss\.fff")) -Level "INFO"
+            Write-EtlRuntimeLog ("ETL step [{0}] completed successfully. Rows transferred: [{1}] | Duration: {2}" -f $StepId, $PipelineRows, $StepStopWatch.Elapsed.ToString("hh\:mm\:ss\.fff")) -Level "INFO"
         }
 
         return $true
     }
     catch {
         $StepStopWatch.Stop()
-        Write-Log ("ETL step [{0}] failed after {1}: {2}" -f $Pipeline.StepId, $StepStopWatch.Elapsed.ToString("hh\:mm\:ss\.fff"), $_.Exception.Message) -Level "ERROR"
+        Write-EtlRuntimeLog ("ETL step [{0}] failed after {1}: {2}" -f $Pipeline.StepId, $StepStopWatch.Elapsed.ToString("hh\:mm\:ss\.fff"), $_.Exception.Message) -Level "ERROR"
         return $false
     }
     finally {
@@ -671,13 +671,13 @@ function Invoke-EtlPipelines {
 
     try {
         $Pipelines = Get-NormalizedPipelines -Config $Config
-        Write-Log ("Configured ETL steps: {0}" -f $Pipelines.Count) -Level "INFO"
+        Write-EtlRuntimeLog ("Configured ETL steps: {0}" -f $Pipelines.Count) -Level "INFO"
         $EnabledPipelines = @($Pipelines | Where-Object { $_.StepEnabled })
         $DisabledPipelines = @($Pipelines | Where-Object { -not $_.StepEnabled })
-        Write-Log ("Enabled ETL steps: {0} | Disabled ETL steps: {1}" -f $EnabledPipelines.Count, $DisabledPipelines.Count) -Level "INFO"
+        Write-EtlRuntimeLog ("Enabled ETL steps: {0} | Disabled ETL steps: {1}" -f $EnabledPipelines.Count, $DisabledPipelines.Count) -Level "INFO"
 
         foreach ($Pipeline in $DisabledPipelines) {
-            Write-Log ("Skipping ETL step [{0}] {1} because StepEnabled=False." -f $Pipeline.StepId, $Pipeline.Name) -Level "WARN"
+            Write-EtlRuntimeLog ("Skipping ETL step [{0}] {1} because StepEnabled=False." -f $Pipeline.StepId, $Pipeline.Name) -Level "WARN"
         }
 
         foreach ($Pipeline in $EnabledPipelines) {
@@ -687,16 +687,16 @@ function Invoke-EtlPipelines {
         }
 
         if ($EnabledPipelines.Count -eq 0) {
-            Write-Log "No enabled ETL steps found. Nothing to execute." -Level "WARN"
+            Write-EtlRuntimeLog "No enabled ETL steps found. Nothing to execute." -Level "WARN"
         }
         else {
-            Write-Log "All enabled ETL steps executed successfully." -Level "INFO"
+            Write-EtlRuntimeLog "All enabled ETL steps executed successfully." -Level "INFO"
         }
 
         return $true
     }
     catch {
-        Write-Log "ETL pipeline execution failed: $($_.Exception.Message)" -Level "ERROR"
+        Write-EtlRuntimeLog "ETL pipeline execution failed: $($_.Exception.Message)" -Level "ERROR"
         return $false
     }
 }
@@ -720,10 +720,10 @@ function Resolve-NormalizedPath {
 }
 
 try {
-    Write-Log "--- SCRIPT STARTED ---" -Level "INFO"
-    Write-Log "Name: $ScriptName | BuildDate: $BuildDate" -Level "INFO"
-    Write-Log "ResolvedConfigPath: $ResolvedConfigPath" -Level "INFO"
-    Write-Log "ProjectRootPath: $ProjectRootPath" -Level "INFO"
+    Write-EtlRuntimeLog "--- SCRIPT STARTED ---" -Level "INFO"
+    Write-EtlRuntimeLog "Name: $ScriptName | BuildDate: $BuildDate" -Level "INFO"
+    Write-EtlRuntimeLog "ResolvedConfigPath: $ResolvedConfigPath" -Level "INFO"
+    Write-EtlRuntimeLog "ProjectRootPath: $ProjectRootPath" -Level "INFO"
 
     if (-not (Test-PathExists -Path $ResolvedConfigPath -PathType Leaf -Description "ETL configuration file")) {
         throw "ETL configuration file validation failed."
@@ -769,28 +769,28 @@ try {
             throw "Flexera Business Adapter execution is enabled, but the adapter module is not available: $FlexeraModulePath"
         }
 
-        $AdapterSucceeded = Invoke-FlexeraBusinessAdapter -Config $Config -RuntimeRoot $ScriptDirectory -LogDirectory $LogDirectory -RunId $Script:RunId -WriteLog ${function:Write-Log} -ResolveNormalizedPath ${function:Resolve-NormalizedPath}
+        $AdapterSucceeded = Invoke-FlexeraBusinessAdapter -Config $Config -RuntimeRoot $ScriptDirectory -LogDirectory $LogDirectory -RunId $Script:RunId -WriteLog ${function:Write-EtlRuntimeLog} -ResolveNormalizedPath ${function:Resolve-NormalizedPath}
         if (-not $AdapterSucceeded) {
             throw 'Flexera Business Adapter execution failed.'
         }
     }
     else {
-        Write-Log 'Flexera Business Adapter execution skipped. Config.Adapter.AdapterEnabled is not set to $true.' -Level 'INFO'
+        Write-EtlRuntimeLog 'Flexera Business Adapter execution skipped. Config.Adapter.AdapterEnabled is not set to $true.' -Level 'INFO'
     }
 
     $StopWatch.Stop()
-    Write-Log ("Execution completed successfully in {0}" -f $StopWatch.Elapsed.ToString("hh\:mm\:ss\.fff")) -Level "INFO"
-    Write-Log "--- SCRIPT COMPLETED SUCCESSFULLY ---" -Level "INFO"
+    Write-EtlRuntimeLog ("Execution completed successfully in {0}" -f $StopWatch.Elapsed.ToString("hh\:mm\:ss\.fff")) -Level "INFO"
+    Write-EtlRuntimeLog "--- SCRIPT COMPLETED SUCCESSFULLY ---" -Level "INFO"
     exit 0
 }
 catch {
     $StopWatch.Stop()
     Write-EtlScriptException -Context $Script:LogContext -ErrorRecord $_ -Prefix 'FATAL SCRIPT ERROR:'
-    Write-Log ("Execution failed after {0}" -f $StopWatch.Elapsed.ToString("hh\:mm\:ss\.fff")) -Level "ERROR"
+    Write-EtlRuntimeLog ("Execution failed after {0}" -f $StopWatch.Elapsed.ToString("hh\:mm\:ss\.fff")) -Level "ERROR"
     exit 1
 }
 finally {
     Clear-ModuleRuntimeContext
     [System.GC]::Collect()
-    Write-Log "--- SCRIPT EXECUTION ENDED ---" -Level "INFO"
+    Write-EtlRuntimeLog "--- SCRIPT EXECUTION ENDED ---" -Level "INFO"
 }

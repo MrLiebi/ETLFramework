@@ -26,13 +26,15 @@ Describe 'Wizard.Paths helpers' {
 
         Context 'Resolve-NormalizedPath' {
             It 'resolves a relative path against a base path' {
-                Resolve-NormalizedPath -Path '.\\data\\input.csv' -BasePath 'C:\Work\ETL' |
-                    Should -Be 'C:\Work\ETL\data\input.csv'
+                $BasePath = [System.IO.Path]::GetFullPath((Join-Path -Path $TestDrive -ChildPath 'Work/ETL'))
+                Resolve-NormalizedPath -Path '.\data\input.csv' -BasePath $BasePath |
+                    Should -Be (Join-Path -Path $BasePath -ChildPath 'data/input.csv')
             }
 
             It 'returns a fully qualified rooted path unchanged' {
-                Resolve-NormalizedPath -Path 'C:\Work\ETL\data\input.csv' -BasePath 'C:\Ignored' |
-                    Should -Be 'C:\Work\ETL\data\input.csv'
+                $RootedPath = [System.IO.Path]::GetFullPath((Join-Path -Path $TestDrive -ChildPath 'Work/ETL/data/input.csv'))
+                Resolve-NormalizedPath -Path $RootedPath -BasePath (Join-Path -Path $TestDrive -ChildPath 'Ignored') |
+                    Should -Be $RootedPath
             }
         }
 

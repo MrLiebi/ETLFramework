@@ -33,6 +33,10 @@ Describe 'Source.MSSQL module' {
     }
 
     Context 'Connection helpers' {
+        It 'returns Integrated by default when AuthenticationMode is missing' {
+            Get-AuthenticationMode -Config @{} | Should -Be 'Integrated'
+        }
+
         It 'returns the provided connection string unchanged' {
             Get-SqlConnectionString -Config @{ ConnectionString = 'Server=override;Database=Demo;' } | Should -Be 'Server=override;Database=Demo;'
         }
@@ -65,6 +69,27 @@ Describe 'Source.MSSQL module' {
                 Should -Be 'Server=sql01;Database=FNMS;Persist Security Info=False;'
         }
 
+        It 'converts plain credential secret to SecureString' {
+            $Secure = ConvertTo-SecurePasswordForSql -CredentialSecret 's3cr3t'
+            $Secure.GetType().FullName | Should -Be 'System.Security.SecureString'
+            $Secure.IsReadOnly() | Should -BeTrue
+        }
+
+        It 'returns an existing SecureString unchanged' {
+            $SecureInput = ConvertTo-SecureString 's3cr3t' -AsPlainText -Force
+            (ConvertTo-SecurePasswordForSql -CredentialSecret $SecureInput) | Should -Be $SecureInput
+        }
+
+        It 'creates SqlConnection from explicit connection string' {
+            $Connection = New-SqlConnection -Config @{ ConnectionString = 'Server=override;Database=Demo;' }
+            try {
+                $Connection.ConnectionString | Should -Be 'Server=override;Database=Demo;'
+            }
+            finally {
+                if ($Connection) { $Connection.Dispose() }
+            }
+        }
+
         It 'creates a SqlConnection with SqlCredential in credential-manager mode' {
             Mock -ModuleName 'Source.MSSQL' Get-AuthenticationMode { 'CredentialManager' }
             Mock -ModuleName 'Source.MSSQL' Get-SqlConnectionCredential { [pscustomobject]@{ UserName = 'etl'; Password = 's3cr3t' } }
@@ -78,6 +103,27 @@ Describe 'Source.MSSQL module' {
             finally {
                 if ($Connection) { $Connection.Dispose() }
             }
+        }
+    }
+
+    Context 'Non-interactive connection guard' {
+        It 'allows localhost server during non-interactive tests' {
+            $env:ETL_TEST_NONINTERACTIVE = '1'
+            { Assert-NonInteractiveSqlConnectionAllowed -Config @{ Server = 'localhost' } } | Should -Not -Throw
+        }
+
+        It 'blocks external server during non-interactive tests unless override is enabled' {
+            $env:ETL_TEST_NONINTERACTIVE = '1'
+            Remove-Item Env:ETL_ALLOW_DB_CONNECTIONS -ErrorAction SilentlyContinue
+            { Assert-NonInteractiveSqlConnectionAllowed -Config @{ Server = 'sql01.example.org' } } |
+                Should -Throw '*blocked MSSQL source connection*'
+        }
+
+        It 'allows external server when override is enabled' {
+            $env:ETL_TEST_NONINTERACTIVE = '1'
+            $env:ETL_ALLOW_DB_CONNECTIONS = '1'
+            { Assert-NonInteractiveSqlConnectionAllowed -Config @{ Server = 'sql01.example.org' } } | Should -Not -Throw
+            Remove-Item Env:ETL_ALLOW_DB_CONNECTIONS -ErrorAction SilentlyContinue
         }
     }
     }

@@ -175,6 +175,30 @@ Describe 'Destination.MSSQL module' {
 
             ((Get-PropertyNames -FirstRow $DataRow) -join ',') | Should -Be 'Alpha,Beta'
         }
+
+        It 'tracks conversion failures and enforces fail threshold when configured' {
+            $Tracking = Initialize-ConversionTracking -PropertyNames @('Amount')
+            Add-ConversionFailure -Tracking $Tracking -ColumnName 'Amount' -Config @{}
+            $Tracking['Amount'] | Should -Be 1
+
+            $StrictTracking = Initialize-ConversionTracking -PropertyNames @('Amount')
+            Add-ConversionFailure -Tracking $StrictTracking -ColumnName 'Amount' -Config @{ FailOnConversionError = $true; MaxConversionErrorsPerColumn = 1 }
+            { Add-ConversionFailure -Tracking $StrictTracking -ColumnName 'Amount' -Config @{ FailOnConversionError = $true; MaxConversionErrorsPerColumn = 1 } } |
+                Should -Throw '*Maximum conversion errors exceeded*'
+        }
+
+        It 'converts boolean/int/decimal/date target types and falls back to DBNull on invalid values' {
+            $Tracking = Initialize-ConversionTracking -PropertyNames @('Flag', 'Count', 'Amount', 'Date')
+            $Config = @{}
+
+            (Convert-ToTypedValue -Value 'yes' -TargetType ([bool]) -ColumnName 'Flag' -ConversionTracking $Tracking -Config $Config) | Should -BeTrue
+            (Convert-ToTypedValue -Value '42' -TargetType ([int64]) -ColumnName 'Count' -ConversionTracking $Tracking -Config $Config) | Should -Be 42
+            (Convert-ToTypedValue -Value '42,5' -TargetType ([decimal]) -ColumnName 'Amount' -ConversionTracking $Tracking -Config $Config) | Should -Be ([decimal]42.5)
+            (Convert-ToTypedValue -Value '2026-04-20' -TargetType ([datetime]) -ColumnName 'Date' -ConversionTracking $Tracking -Config $Config) | Should -Be ([datetime]'2026-04-20')
+
+            ((Convert-ToTypedValue -Value 'not-a-bool' -TargetType ([bool]) -ColumnName 'Flag' -ConversionTracking $Tracking -Config $Config) -eq [DBNull]::Value) | Should -BeTrue
+            $Tracking['Flag'] | Should -BeGreaterThan 0
+        }
     }
 }
 }

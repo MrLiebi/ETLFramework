@@ -47,7 +47,7 @@ if (-not (Test-Path -Path $LoggingModulePath -PathType Leaf)) {
 Import-Module -Name $LoggingModulePath -Force -ErrorAction Stop
 $Script:LogContext = Initialize-EtlScriptLogContext -LogDirectory $LogDirectory -LogFile $LogFile -LogLevel 'INFO' -RetentionDays $LogFileRetentionDays -Append $LogFileAppend -CleanupKey ('Task::{0}' -f $ScriptName)
 
-function Write-Log {
+function Write-ScriptLog {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string] $Message,
@@ -63,7 +63,7 @@ function Show-WarningPopup {
     )
 
     if (-not $ShowWarningsInGui) {
-        Write-Log "GUI warning suppressed. $Title | $Message" -Level 'DEBUG'
+        Write-ScriptLog "GUI warning suppressed. $Title | $Message" -Level 'DEBUG'
         return
     }
 
@@ -72,7 +72,7 @@ function Show-WarningPopup {
         [void][System.Windows.MessageBox]::Show($Message, $Title, [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Warning)
     }
     catch {
-        Write-Log "Popup could not be displayed: $($_.Exception.Message)" -Level 'WARN'
+        Write-ScriptLog "Popup could not be displayed: $($_.Exception.Message)" -Level 'WARN'
     }
 }
 
@@ -146,7 +146,7 @@ function Get-OrCreateTaskFolder {
             $CurrentFolder = $CurrentFolder.GetFolder($Segment)
         }
         catch {
-            Write-Log "Creating scheduled task folder: $Segment" -Level 'INFO'
+            Write-ScriptLog "Creating scheduled task folder: $Segment" -Level 'INFO'
             $CurrentFolder = $CurrentFolder.CreateFolder($Segment, $null)
         }
     }
@@ -194,12 +194,12 @@ function Register-TaskDefinitionWithScheduledTasksModule {
             $RegisterParams.TaskPath = $TaskIdentity.TaskPath
         }
 
-        Write-Log "Registering scheduled task via ScheduledTasks module. TaskPath=$($TaskIdentity.TaskPath) | TaskName=$($TaskIdentity.TaskName)" -Level 'INFO'
+        Write-ScriptLog "Registering scheduled task via ScheduledTasks module. TaskPath=$($TaskIdentity.TaskPath) | TaskName=$($TaskIdentity.TaskName)" -Level 'INFO'
         Register-ScheduledTask @RegisterParams | Out-Null
-        Write-Log "Scheduled task registered successfully via ScheduledTasks module: $FullTaskName" -Level 'INFO'
+        Write-ScriptLog "Scheduled task registered successfully via ScheduledTasks module: $FullTaskName" -Level 'INFO'
     }
     catch {
-        Write-Log "ScheduledTasks module registration failed, falling back to COM API: $($_.Exception.Message)" -Level 'WARN'
+        Write-ScriptLog "ScheduledTasks module registration failed, falling back to COM API: $($_.Exception.Message)" -Level 'WARN'
         Register-TaskDefinitionWithCom -FullTaskName $FullTaskName -TaskXmlPath $TaskXmlPath -RunAsUser $RunAsUser -RunAsPassword $RunAsPassword
     }
     finally {
@@ -226,7 +226,7 @@ function Register-TaskDefinitionWithCom {
         $ScheduleService.Connect()
         $TaskFolder = Get-OrCreateTaskFolder -ScheduleService $ScheduleService -TaskPath $TaskIdentity.TaskPath
 
-        Write-Log "Registering scheduled task via Schedule.Service COM API. TaskPath=$($TaskIdentity.TaskPath) | TaskName=$($TaskIdentity.TaskName)" -Level 'INFO'
+        Write-ScriptLog "Registering scheduled task via Schedule.Service COM API. TaskPath=$($TaskIdentity.TaskPath) | TaskName=$($TaskIdentity.TaskName)" -Level 'INFO'
         [void]$TaskFolder.RegisterTask(
             $TaskIdentity.TaskName,
             $TaskXmlContent,
@@ -237,7 +237,7 @@ function Register-TaskDefinitionWithCom {
             $null
         )
 
-        Write-Log "Scheduled task registered successfully via COM API: $FullTaskName" -Level 'INFO'
+        Write-ScriptLog "Scheduled task registered successfully via COM API: $FullTaskName" -Level 'INFO'
     }
     finally {
         $PlainPassword = $null
@@ -258,11 +258,11 @@ function Register-TaskDefinition {
 }
 
 try {
-    Write-Log '--- SCRIPT STARTED ---' -Level 'INFO'
-    Write-Log "Name: $ScriptName | BuildDate: $BuildDate" -Level 'INFO'
-    Write-Log "TaskName: $TaskName" -Level 'INFO'
-    Write-Log "RunAsUser: $RunAsUser" -Level 'INFO'
-    Write-Log ("ShowWarningsInGui: {0}" -f [bool]$ShowWarningsInGui) -Level 'DEBUG'
+    Write-ScriptLog '--- SCRIPT STARTED ---' -Level 'INFO'
+    Write-ScriptLog "Name: $ScriptName | BuildDate: $BuildDate" -Level 'INFO'
+    Write-ScriptLog "TaskName: $TaskName" -Level 'INFO'
+    Write-ScriptLog "RunAsUser: $RunAsUser" -Level 'INFO'
+    Write-ScriptLog ("ShowWarningsInGui: {0}" -f [bool]$ShowWarningsInGui) -Level 'DEBUG'
 
     $CurrentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $CurrentPrincipal = New-Object Security.Principal.WindowsPrincipal($CurrentIdentity)
@@ -273,7 +273,7 @@ try {
         Write-Ui 'ERROR: Register-Task.ps1 must be started with Administrator rights.' -ForegroundColor Red
         Write-Ui 'Please open PowerShell as Administrator and run the script again.' -ForegroundColor Yellow
         Write-Ui ''
-        Write-Log 'Script was not started with Administrator rights.' -Level 'ERROR'
+        Write-ScriptLog 'Script was not started with Administrator rights.' -Level 'ERROR'
         Show-WarningPopup -Message $AdminMessage -Title 'Administrator rights required'
         exit 1
     }
@@ -281,7 +281,7 @@ try {
     if (-not [System.IO.Path]::IsPathRooted($TaskXmlPath)) {
         $TaskXmlPath = Join-Path -Path $ScriptDirectory -ChildPath $TaskXmlPath
     }
-    Write-Log "Resolved TaskXmlPath: $TaskXmlPath" -Level 'INFO'
+    Write-ScriptLog "Resolved TaskXmlPath: $TaskXmlPath" -Level 'INFO'
 
     if (-not (Test-Path -Path $TaskXmlPath -PathType Leaf)) {
         throw "Task XML file not found: $TaskXmlPath"
@@ -294,11 +294,11 @@ try {
             }
 
             $RunAsPassword = Convert-EtlTaskRunPasswordToSecureString -PlainText $env:ETL_TASK_RUNAS_PASSWORD
-            Write-Log 'RunAs password provided via ETL_TASK_RUNAS_PASSWORD in non-interactive mode.' -Level 'INFO'
+            Write-ScriptLog 'RunAs password provided via ETL_TASK_RUNAS_PASSWORD in non-interactive mode.' -Level 'INFO'
         }
         elseif (-not [string]::IsNullOrWhiteSpace($env:ETL_TASK_RUNAS_PASSWORD)) {
             $RunAsPassword = Convert-EtlTaskRunPasswordToSecureString -PlainText $env:ETL_TASK_RUNAS_PASSWORD
-            Write-Log 'RunAs password provided via ETL_TASK_RUNAS_PASSWORD (automated host).' -Level 'INFO'
+            Write-ScriptLog 'RunAs password provided via ETL_TASK_RUNAS_PASSWORD (automated host).' -Level 'INFO'
         }
         else {
             Write-Ui ''
@@ -311,7 +311,7 @@ try {
     Register-TaskDefinitionWithScheduledTasksModule -FullTaskName $TaskName -TaskXmlPath $TaskXmlPath -RunAsUser $RunAsUser -RunAsPassword $RunAsPassword
 
     $StopWatch.Stop()
-    Write-Log ("Task registration completed successfully in {0}" -f $StopWatch.Elapsed.ToString('hh\:mm\:ss\.fff')) -Level 'INFO'
+    Write-ScriptLog ("Task registration completed successfully in {0}" -f $StopWatch.Elapsed.ToString('hh\:mm\:ss\.fff')) -Level 'INFO'
     exit 0
 }
 catch {
@@ -320,5 +320,5 @@ catch {
     exit 1
 }
 finally {
-    Write-Log '--- SCRIPT EXECUTION ENDED ---' -Level 'INFO'
+    Write-ScriptLog '--- SCRIPT EXECUTION ENDED ---' -Level 'INFO'
 }

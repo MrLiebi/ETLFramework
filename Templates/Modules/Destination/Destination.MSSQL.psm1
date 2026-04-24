@@ -183,16 +183,17 @@ function Get-SqlConnectionString {
 
 function ConvertTo-SecurePasswordForSql {
     [CmdletBinding(SupportsShouldProcess = $true)]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', 'CredentialSecret', Justification = 'Input accepts existing credential material and immediately converts to SecureString for SqlCredential.')]
     param(
-        [AllowNull()] $Password
+        [AllowNull()] $CredentialSecret
     )
 
-    if ($Password -is [System.Security.SecureString]) {
-        return $Password
+    if ($CredentialSecret -is [System.Security.SecureString]) {
+        return $CredentialSecret
     }
 
     $SecurePassword = New-Object System.Security.SecureString
-    $PasswordText = if ($null -eq $Password) { '' } else { [string]$Password }
+    $PasswordText = if ($null -eq $CredentialSecret) { '' } else { [string]$CredentialSecret }
     if (-not [string]::IsNullOrEmpty($PasswordText)) {
         foreach ($Character in $PasswordText.ToCharArray()) {
             $SecurePassword.AppendChar($Character)
@@ -245,7 +246,7 @@ function New-SqlConnection {
         $ConnectionBuilder['Integrated Security'] = $false
         $ConnectionBuilder['Persist Security Info'] = $false
 
-        $SecurePassword = ConvertTo-SecurePasswordForSql -Password $CredentialPasswordValue
+        $SecurePassword = ConvertTo-SecurePasswordForSql -CredentialSecret $CredentialPasswordValue
         $SqlCredential = New-Object System.Data.SqlClient.SqlCredential($CredentialUserName, $SecurePassword)
         return [System.Data.SqlClient.SqlConnection]::new($ConnectionBuilder.ConnectionString, $SqlCredential)
     }

@@ -14,13 +14,14 @@ Describe 'Wizard.EntryPoint helpers' {
     }
 
     It 'builds the bootstrap context for New-ETLProject.ps1' {
-        $Path = 'C:\Framework\New-ETLProject.ps1'
+        $FrameworkRoot = Join-Path -Path $TestDrive -ChildPath 'Framework'
+        $Path = Join-Path -Path $FrameworkRoot -ChildPath 'New-ETLProject.ps1'
         $Context = Get-NewEtlProjectBootstrapContext -ScriptPath $Path
 
         $Context.ScriptPath | Should -Be $Path
-        $Context.ScriptDirectory | Should -Be 'C:\Framework'
-        $Context.WizardLoggingModulePath | Should -Be 'C:\Framework\Wizard\Modules\Wizard.Logging.psm1'
-        $Context.WizardBootstrapPath | Should -Be 'C:\Framework\Wizard\Bootstrap.ps1'
+        $Context.ScriptDirectory | Should -Be $FrameworkRoot
+        $Context.WizardLoggingModulePath | Should -Be (Join-Path -Path $FrameworkRoot -ChildPath 'Wizard/Modules/Wizard.Logging.psm1')
+        $Context.WizardBootstrapPath | Should -Be (Join-Path -Path $FrameworkRoot -ChildPath 'Wizard/Bootstrap.ps1')
     }
 
     It 'throws when a required bootstrap asset is missing' {
