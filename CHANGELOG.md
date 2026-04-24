@@ -2,7 +2,6 @@
 
 All notable changes to this ETL Framework are documented in this file.
 This project follows semantic versioning.
-Documentation and in-script comments and user-visible strings use **American English** spelling (for example *behavior*, *recognize*, *finalize*).
 
 ## [1.0.0] - 2026-04-24
 
