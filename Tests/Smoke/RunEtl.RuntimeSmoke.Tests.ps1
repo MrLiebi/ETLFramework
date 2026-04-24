@@ -1,11 +1,38 @@
 Set-StrictMode -Version Latest
 
 Describe 'Run-ETL runtime smoke tests' {
+
     BeforeAll {
         $script:FrameworkRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
         $script:RuntimeTemplatePath = Join-Path -Path $script:FrameworkRoot -ChildPath 'Templates/Runtime/Run-ETL.ps1'
         $script:CommonModuleTemplatePath = Join-Path -Path $script:FrameworkRoot -ChildPath 'Templates/Modules/Common'
         $script:CredentialModuleTemplatePath = Join-Path -Path $script:FrameworkRoot -ChildPath 'Templates/Modules/Credential/Credential.Manager.psm1'
+        $HostCandidates = New-Object System.Collections.Generic.List[string]
+        if ($env:OS -eq 'Windows_NT') {
+            [void]$HostCandidates.Add('powershell.exe')
+        }
+        [void]$HostCandidates.Add('pwsh')
+        [void]$HostCandidates.Add('powershell')
+
+        $ResolvedHost = $null
+        foreach ($HostCandidate in $HostCandidates) {
+            $HostCommand = Get-Command -Name $HostCandidate -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($null -ne $HostCommand) {
+                if ($HostCommand.PSObject.Properties['Path'] -and -not [string]::IsNullOrWhiteSpace([string]$HostCommand.Path)) {
+                    $ResolvedHost = [string]$HostCommand.Path
+                }
+                else {
+                    $ResolvedHost = [string]$HostCommand.Name
+                }
+                break
+            }
+        }
+
+        if ([string]::IsNullOrWhiteSpace($ResolvedHost)) {
+            throw 'No compatible PowerShell host found. Install Windows PowerShell 5.1 or PowerShell 7 (pwsh).'
+        }
+
+        $script:PowerShellHostPath = $ResolvedHost
     }
 
     It 'executes a minimal runtime pipeline successfully and writes output' {
@@ -111,7 +138,7 @@ Export-ModuleMember -Function Invoke-Load
 
         Push-Location -Path $RunRoot
         try {
-            $CommandResult = & pwsh -NoProfile -File (Join-Path -Path $RunRoot -ChildPath 'Run-ETL.ps1') -ConfigPath '.\config.psd1' 2>&1
+            $CommandResult = & $script:PowerShellHostPath -NoProfile -File (Join-Path -Path $RunRoot -ChildPath 'Run-ETL.ps1') -ConfigPath '.\config.psd1' 2>&1
         }
         finally {
             Pop-Location
@@ -172,7 +199,7 @@ Export-ModuleMember -Function Invoke-Load
 
         Push-Location -Path $RunRoot
         try {
-            $CommandResult = & pwsh -NoProfile -File (Join-Path -Path $RunRoot -ChildPath 'Run-ETL.ps1') -ConfigPath '.\config.psd1' 2>&1
+            $CommandResult = & $script:PowerShellHostPath -NoProfile -File (Join-Path -Path $RunRoot -ChildPath 'Run-ETL.ps1') -ConfigPath '.\config.psd1' 2>&1
         }
         finally {
             Pop-Location

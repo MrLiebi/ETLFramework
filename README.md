@@ -155,6 +155,7 @@ Output files (by default; not committed because of `.gitignore`):
 
 More detail on test layers: [`Tests/README-Extended.md`](Tests/README-Extended.md).  
 Tester notes and coverage hints: [`Tests/TESTER-AUDIT.md`](Tests/TESTER-AUDIT.md).
+`RunEtl.RuntimeSmoke.Tests.ps1` resolves a compatible external host automatically (`powershell.exe` on Windows when available, otherwise `pwsh`) so the runtime smoke layer is not tied to one executable name.
 
 ---
 
@@ -162,15 +163,16 @@ Tester notes and coverage hints: [`Tests/TESTER-AUDIT.md`](Tests/TESTER-AUDIT.md
 
 | File | Content |
 |------|---------|
-| [`CHANGELOG.md`](CHANGELOG.md) | Semantic version notes, breaking changes, security and stability fixes. |
-| [`Tests/README-Extended.md`](Tests/README-Extended.md) | Test harness architecture, coverage, PSScriptAnalyzer 1.25.x compatibility. |
-| [`Tests/TESTER-AUDIT.md`](Tests/TESTER-AUDIT.md) | Audit summary, scripts intentionally not executed in automation. |
+| [`CHANGELOG.md`](CHANGELOG.md) | Semantic version notes and release changes. |
+| [`Tests/README-Extended.md`](Tests/README-Extended.md) | Test scope and local execution of the extended test harness. |
+| [`Tests/TESTER-AUDIT.md`](Tests/TESTER-AUDIT.md) | Compact audit checklist for coverage and intentionally non-automated entry scripts. |
 
 ---
 
 ## Versioning
 
 Current release line in the repository: **23.1.0** (see `CHANGELOG.md` and comments in entry scripts).
+Repository-internal release traceability is tracked in `ReleaseManifest.psd1` (version, intended tag, release commit, release URL).
 
 ### GitHub releases (required practice)
 

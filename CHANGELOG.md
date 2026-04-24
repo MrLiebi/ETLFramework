@@ -6,6 +6,9 @@ Documentation and in-script comments and user-visible strings use **American Eng
 
 ## [23.1.0] - 2026-04-24
 
+### Release reference
+- Release metadata for this version is tracked in `ReleaseManifest.psd1` (`Version=23.1.0`, `Tag=v23.1.0`, `ReleaseCommit=c8f9592`) to keep repository-internal traceability even before tag/release publication is externally visible.
+
 ### Added
 - Added non-interactive runtime smoke tests for `Templates/Runtime/Run-ETL.ps1` that validate both a successful end-to-end pipeline execution and a failing adapter-import path.
 - Added dynamic wizard adapter-template discovery helpers so source/destination options are resolved from available `Source.*.psm1` and `Destination.*.psm1` templates.
