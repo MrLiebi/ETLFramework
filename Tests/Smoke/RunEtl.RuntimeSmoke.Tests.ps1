@@ -1,36 +1,38 @@
 Set-StrictMode -Version Latest
 
 Describe 'Run-ETL runtime smoke tests' {
-    function Resolve-PowerShellHostPath {
-        [CmdletBinding()]
-        param()
-
-        $Candidates = New-Object System.Collections.Generic.List[string]
-        if ($env:OS -eq 'Windows_NT') {
-            [void]$Candidates.Add('powershell.exe')
-        }
-        [void]$Candidates.Add('pwsh')
-        [void]$Candidates.Add('powershell')
-
-        foreach ($Candidate in $Candidates) {
-            $Command = Get-Command -Name $Candidate -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($null -ne $Command) {
-                if ($Command.PSObject.Properties['Path'] -and -not [string]::IsNullOrWhiteSpace([string]$Command.Path)) {
-                    return [string]$Command.Path
-                }
-                return [string]$Command.Name
-            }
-        }
-
-        throw 'No compatible PowerShell host found. Install Windows PowerShell 5.1 or PowerShell 7 (pwsh).'
-    }
 
     BeforeAll {
         $script:FrameworkRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
         $script:RuntimeTemplatePath = Join-Path -Path $script:FrameworkRoot -ChildPath 'Templates/Runtime/Run-ETL.ps1'
         $script:CommonModuleTemplatePath = Join-Path -Path $script:FrameworkRoot -ChildPath 'Templates/Modules/Common'
         $script:CredentialModuleTemplatePath = Join-Path -Path $script:FrameworkRoot -ChildPath 'Templates/Modules/Credential/Credential.Manager.psm1'
-        $script:PowerShellHostPath = Resolve-PowerShellHostPath
+        $HostCandidates = New-Object System.Collections.Generic.List[string]
+        if ($env:OS -eq 'Windows_NT') {
+            [void]$HostCandidates.Add('powershell.exe')
+        }
+        [void]$HostCandidates.Add('pwsh')
+        [void]$HostCandidates.Add('powershell')
+
+        $ResolvedHost = $null
+        foreach ($HostCandidate in $HostCandidates) {
+            $HostCommand = Get-Command -Name $HostCandidate -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($null -ne $HostCommand) {
+                if ($HostCommand.PSObject.Properties['Path'] -and -not [string]::IsNullOrWhiteSpace([string]$HostCommand.Path)) {
+                    $ResolvedHost = [string]$HostCommand.Path
+                }
+                else {
+                    $ResolvedHost = [string]$HostCommand.Name
+                }
+                break
+            }
+        }
+
+        if ([string]::IsNullOrWhiteSpace($ResolvedHost)) {
+            throw 'No compatible PowerShell host found. Install Windows PowerShell 5.1 or PowerShell 7 (pwsh).'
+        }
+
+        $script:PowerShellHostPath = $ResolvedHost
     }
 
     It 'executes a minimal runtime pipeline successfully and writes output' {
