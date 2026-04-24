@@ -1,10 +1,10 @@
 @{
     Latest = @{
-        Version       = '1.0'
-        Tag           = 'v1.0'
+        Version       = '1.0.0'
+        Tag           = 'v1.0.0'
         ReleaseCommit = 'pending-main-tag'
-        ReleaseUrl    = 'https://github.com/MrLiebi/ETLFramework/releases/tag/v1.0'
-        Notes         = 'Final release 1.0 with bundled .NET Framework 4.8.1 offline installer.'
+        ReleaseUrl    = 'https://github.com/MrLiebi/ETLFramework/releases/tag/v1.0.0'
+        Notes         = 'Final release 1.0.0 with bundled .NET Framework 4.8.1 offline installer.'
     }
 
     BundledInstallers = @{
