@@ -58,6 +58,10 @@ Describe 'Wizard.PreReqs helpers' {
         $Versions | Should -Be @('4.8.1','4.8','4.7.2','4.7.1','4.7')
     }
 
+    It 'throws for unsupported .NET minimum versions in status lookup' {
+        { Get-WizardDotNetFrameworkStatus -MinimumVersion '5.0' } | Should -Throw '*Unsupported .NET Framework minimum version*'
+    }
+
     It 'returns bundled installer metadata when installer exists' {
         Mock -ModuleName $script:Module.Name Resolve-WizardBundledDotNetInstallerPath { 'C:\Framework\Templates\Installers\DotNet\NDP481-x86-x64-AllOS-ENU.exe' }
         Mock -ModuleName $script:Module.Name Test-Path { $true }
@@ -72,6 +76,54 @@ Describe 'Wizard.PreReqs helpers' {
         $Metadata.Present | Should -BeTrue
         $Metadata.SizeBytes | Should -Be 77594584
         $Metadata.InstallerPath | Should -Be 'C:\Framework\Templates\Installers\DotNet\NDP481-x86-x64-AllOS-ENU.exe'
+    }
+
+    It 'returns metadata with Present=false when bundled installer is missing' {
+        Mock -ModuleName $script:Module.Name Resolve-WizardBundledDotNetInstallerPath { '' }
+        Mock -ModuleName $script:Module.Name Test-Path { $false }
+
+        $Metadata = Get-WizardBundledDotNetInstallerMetadata -FrameworkRoot 'C:\Framework' -MinimumVersion '4.8.1'
+        $Metadata.Present | Should -BeFalse
+        $Metadata.SizeBytes | Should -Be 0
+    }
+
+    It 'returns empty string when no bundled installer is available for framework root' {
+        Mock -ModuleName $script:Module.Name Test-Path { $false }
+        $FrameworkRoot = Join-Path -Path $TestDrive -ChildPath 'Framework'
+
+        $Result = Resolve-WizardBundledDotNetInstallerPath -FrameworkRoot $FrameworkRoot -MinimumVersion '4.8.1'
+        $Result | Should -Be ''
+    }
+
+    It 'returns true when installer exits with reboot-required code 3010' {
+        Mock -ModuleName $script:Module.Name Test-Path { $true }
+        Mock -ModuleName $script:Module.Name Start-Process {
+            [pscustomobject]@{ ExitCode = 3010 }
+        }
+
+        Install-WizardDotNetFrameworkOffline -InstallerPath 'C:\Installers\dotnet.exe' | Should -BeTrue
+    }
+
+    It 'throws when installer exits with non-success code' {
+        Mock -ModuleName $script:Module.Name Test-Path { $true }
+        Mock -ModuleName $script:Module.Name Start-Process {
+            [pscustomobject]@{ ExitCode = 42 }
+        }
+
+        { Install-WizardDotNetFrameworkOffline -InstallerPath 'C:\Installers\dotnet.exe' } | Should -Throw '*failed with exit code 42*'
+    }
+
+    It 'throws when install is approved but no installer path can be resolved' {
+        Mock -ModuleName $script:Module.Name Test-WizardExcelDataReaderTemplateDependency { [pscustomobject]@{ Present = $true; DllPath='x'; CodePagesPresent=$true; CodePagesDllPath='y'; SystemMemoryPresent=$true; SystemMemoryPath='z'; SystemBuffersPresent=$true; SystemBuffersPath='b'; UnsafePresent=$true; UnsafeDllPath='u' } }
+        Mock -ModuleName $script:Module.Name Write-WizardDependencySummary {}
+        Mock -ModuleName $script:Module.Name Get-WizardDotNetFrameworkStatus { [pscustomobject]@{ Installed = $false; Release = $null; DetectedVersion = 'Not detected'; MinimumVersion = '4.8.1'; MinimumRelease = 533320; RequirementMet = $false } }
+        Mock -ModuleName $script:Module.Name Read-BooleanChoice { $true }
+        Mock -ModuleName $script:Module.Name Test-WizardIsAdministrator { $true }
+        Mock -ModuleName $script:Module.Name Resolve-WizardBundledDotNetInstallerPath { '' }
+        Mock -ModuleName $script:Module.Name Read-InputValue { '' }
+
+        { Invoke-WizardPrerequisiteWorkflow -MinimumVersion '4.8.1' -FrameworkRoot 'C:\Framework' -AllowInstallIfMissing:$true } |
+            Should -Throw '*Please provide the path to an offline installer*'
     }
 
     It 'returns an unmet status when the prerequisite is missing and installation is disabled' {

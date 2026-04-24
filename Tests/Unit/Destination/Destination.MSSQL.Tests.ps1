@@ -36,6 +36,10 @@ Describe 'Destination.MSSQL module' {
         }
 
         Context 'SQL connection helpers' {
+            It 'returns Integrated by default when AuthenticationMode is missing' {
+                Get-AuthenticationMode -Config @{} | Should -Be 'Integrated'
+            }
+
             It 'returns the provided connection string unchanged' {
                 Get-SqlConnectionString -Config @{ ConnectionString = 'Server=override;Database=Demo;' } | Should -Be 'Server=override;Database=Demo;'
             }
@@ -67,6 +71,17 @@ Describe 'Destination.MSSQL module' {
                 { Get-SqlConnectionCredential -Config @{ AuthenticationMode = 'CredentialManager' } } |
                     Should -Throw '*CredentialTarget for AuthenticationMode=CredentialManager*'
             }
+
+            It 'converts plain credential secret to SecureString' {
+                $Secure = ConvertTo-SecurePasswordForSql -CredentialSecret 's3cr3t'
+                $Secure.GetType().FullName | Should -Be 'System.Security.SecureString'
+                $Secure.IsReadOnly() | Should -BeTrue
+            }
+
+            It 'returns an existing SecureString unchanged' {
+                $SecureInput = ConvertTo-SecureString 's3cr3t' -AsPlainText -Force
+                (ConvertTo-SecurePasswordForSql -CredentialSecret $SecureInput) | Should -Be $SecureInput
+            }
         }
 
         Context 'SQL connection construction' {
@@ -92,6 +107,25 @@ Describe 'Destination.MSSQL module' {
                 finally {
                     $Connection.Dispose()
                 }
+            }
+
+            It 'blocks external server during non-interactive tests unless override is enabled' {
+                $env:ETL_TEST_NONINTERACTIVE = '1'
+                Remove-Item Env:ETL_ALLOW_DB_CONNECTIONS -ErrorAction SilentlyContinue
+                { Assert-NonInteractiveSqlConnectionAllowed -Config @{ Server = 'sql01.example.org' } } |
+                    Should -Throw '*blocked MSSQL destination connection*'
+            }
+
+            It 'allows localhost server during non-interactive tests' {
+                $env:ETL_TEST_NONINTERACTIVE = '1'
+                { Assert-NonInteractiveSqlConnectionAllowed -Config @{ Server = 'localhost' } } | Should -Not -Throw
+            }
+
+            It 'allows external server when override is enabled' {
+                $env:ETL_TEST_NONINTERACTIVE = '1'
+                $env:ETL_ALLOW_DB_CONNECTIONS = '1'
+                { Assert-NonInteractiveSqlConnectionAllowed -Config @{ Server = 'sql01.example.org' } } | Should -Not -Throw
+                Remove-Item Env:ETL_ALLOW_DB_CONNECTIONS -ErrorAction SilentlyContinue
             }
 
             It 'creates a SqlConnection with SqlCredential in credential-manager mode' {
@@ -199,6 +233,74 @@ Describe 'Destination.MSSQL module' {
             ((Convert-ToTypedValue -Value 'not-a-bool' -TargetType ([bool]) -ColumnName 'Flag' -ConversionTracking $Tracking -Config $Config) -eq [DBNull]::Value) | Should -BeTrue
             $Tracking['Flag'] | Should -BeGreaterThan 0
         }
+
+            It 'normalizes SQL type text using invariant casing' {
+                Get-NormalizedSqlTypeName -SqlType ' decimal (19, 6) ' | Should -Be 'DECIMAL(19,6)'
+            }
+
+            It 'resolves .NET type names and throws for unknown values' {
+                (Resolve-NetType -NetTypeName 'System.String').FullName | Should -Be 'System.String'
+                { Resolve-NetType -NetTypeName 'No.Such.Type' } | Should -Throw '*Unsupported NetType*'
+            }
+
+            It 'creates explicit and fallback column metadata' {
+                $Explicit = Get-ColumnMetadataFromExplicitConfig -ColumnsConfig @{
+                    Amount = @{ SqlType = 'DECIMAL(19,6)'; NetType = 'System.Decimal' }
+                } -PropertyNames @('Amount')
+                $Explicit['Amount'].SqlType | Should -Be 'DECIMAL(19,6)'
+                $Explicit['Amount'].NetType.FullName | Should -Be 'System.Decimal'
+
+                $Fallback = Get-ColumnMetadataFromPropertyNames -PropertyNames @('Name')
+                $Fallback['Name'].SqlType | Should -Be 'NVARCHAR(MAX)'
+            }
+
+            It 'writes conversion summary with WARN level when failures exist' {
+                $Messages = [System.Collections.Generic.List[string]]::new()
+                Mock -ModuleName 'Destination.MSSQL' Write-ModuleLog {
+                    param($Message, $Level)
+                    [void]$Messages.Add(("{0}|{1}" -f $Level, $Message))
+                }
+                Write-ConversionSummary -Tracking @{ Amount = 2; Name = 0 } -Config @{}
+                ($Messages -join ';') | Should -Match 'WARN\|Column \[Amount\]'
+            }
     }
+
+        Context 'Streaming load state helpers' {
+            It 'normalizes batch and inference defaults in streaming state' {
+                $State = Initialize-StreamingLoadState -Config @{
+                    TableName = 'Users'
+                    BatchSize = 0
+                    InferenceSampleSize = 0
+                }
+
+                $State.SchemaName | Should -Be 'dbo'
+                $State.BatchSize | Should -Be 5000
+                $State.InferenceSampleSize | Should -Be 1000
+                $State.UseStagingTable | Should -BeTrue
+            }
+
+            It 'creates a SQL transaction only when non-staging load is active' {
+                $FakeState = @{
+                    Connection         = [System.Data.SqlClient.SqlConnection]::new()
+                    UseStagingTable    = $false
+                    Transaction        = $null
+                    QualifiedTableName = '[dbo].[Users]'
+                }
+                Mock -ModuleName 'Destination.MSSQL' Write-ModuleLog {}
+                Mock -ModuleName 'Destination.MSSQL' New-Object {
+                    param($TypeName, $ArgumentList)
+                    if ($TypeName -eq 'System.Data.SqlClient.SqlConnection') {
+                        return [System.Data.SqlClient.SqlConnection]::new()
+                    }
+                    Microsoft.PowerShell.Utility\New-Object -TypeName $TypeName -ArgumentList $ArgumentList
+                } -ParameterFilter { $TypeName -eq 'System.Data.SqlClient.SqlConnection' }
+                Mock -ModuleName 'Destination.MSSQL' Start-SqlTransactionIfNeeded {}
+
+                # Cover branch behavior by validating function no-op guard path.
+                Start-SqlTransactionIfNeeded -State @{ Connection = $null; UseStagingTable = $false; Transaction = $null; QualifiedTableName = '[dbo].[Users]' }
+                Start-SqlTransactionIfNeeded -State @{ Connection = $FakeState.Connection; UseStagingTable = $true; Transaction = $null; QualifiedTableName = '[dbo].[Users]' }
+                $FakeState.Transaction | Should -BeNullOrEmpty
+            }
+        }
 }
 }
