@@ -1,61 +1,31 @@
 
 # Extended test harness for the PS ETL framework
 
-All prose in this document uses **American English** spelling, consistent with the rest of the framework repository.
+This document describes the **current** automated test setup used by the framework.
 
-This test package validates the framework on four levels:
+## Test layers
 
-1. **Parser / syntax smoke tests** for all `.ps1` and `.psm1` files  
-2. **PSScriptAnalyzer** using settings compatible with `PSScriptAnalyzer 1.25.x`  
-3. **Module / export smoke tests** for all importable runtime and wizard modules  
-4. **Unit and near-integration tests** for core helpers and adapters  
+The suite validates the framework on four levels:
 
-## Cleanups vs. older versions
+1. Parser/syntax smoke tests for all `.ps1` and `.psm1` files  
+2. `PSScriptAnalyzer` checks via `PSScriptAnalyzerSettings.psd1`  
+3. Module import/export smoke tests for runtime and wizard modules  
+4. Unit and near-integration tests for high-value helpers and adapters  
 
-- No obsolete `ExcludePath` usage in `PSScriptAnalyzerSettings.psd1`  
-- The central runner excludes the standalone analyzer smoke test by tag so analyzer findings are not produced twice  
-- No legacy analyzer invocation with root `-Recurse` in the Pester smoke test  
-- More robust runner without relying on empty `$PSScriptRoot` in default parameters  
-- Additional **completeness check** via `CoverageManifest.psd1`  
-
-## Coverage
-
-Covered directly by unit and smoke tests, including:
-
-- `Framework.Common`  
-- `Framework.Logging`  
-- `Framework.Validation`  
-- `Source.CSV`  
-- `Source.JSON`  
-- `Source.XML`  
-- `Source.CustomScript`  
-- `Source.MSSQL`  
-- `Source.LDAP` (configuration gates)  
-- `Source.XLSX` (configuration gates)  
-- `Destination.CSV`  
-- `Destination.MSSQL`  
-- `Wizard.Config`  
-- `Wizard.Paths`  
-- `Wizard.Adapter`  
-- `Wizard.Schedule`  
-- `Wizard.Logging`  
-- Module import/export for all `.psm1` modules  
-
-Interactive or side-effect-heavy entry scripts such as `New-ETLProject.ps1` and `Register-Task.ps1` are guarded via **syntax + analyzer + coverage manifest** instead of being executed automatically in the test run.
-`Run-ETL.ps1` additionally has a non-interactive smoke test with mocked source/destination adapters to validate runtime orchestration and exit behavior without external systems. The smoke test resolves a compatible external host automatically (`powershell.exe` on Windows when available, otherwise `pwsh`) so execution is not bound to a single executable name.
+`Run-ETL.ps1` is additionally covered by a non-interactive smoke test with mocked adapters.  
+The smoke test resolves a compatible external host automatically (`powershell.exe` on Windows when available, otherwise `pwsh`/`powershell`).
 
 ## Run locally
 
 ```powershell
 Set-Location <FrameworkRoot>
 .\Tests\Install-TestDependencies.ps1
-# Code coverage is on by default (coverage.xml under Tests\TestResults).
 .\Tests\Invoke-ExtendedFrameworkTests.ps1
-# Faster run without coverage:
+# Optional: faster run without coverage output
 # .\Tests\Invoke-ExtendedFrameworkTests.ps1 -SkipCodeCoverage
 ```
 
-## Output
+## Output artifacts
 
 By default the runner writes to `Tests\TestResults`:
 
@@ -63,29 +33,14 @@ By default the runner writes to `Tests\TestResults`:
 - `coverage.xml`  
 - `psscriptanalyzer-results.json`  
 
-## Compatibility fixes
+## Coverage scope (high level)
 
-- Central `Invoke-ScriptAnalyzerCompat` helper so file lists work with `PSScriptAnalyzer 1.25.x` on systems where `-Path` effectively accepts only a single string.  
-- Runner and Pester smoke test now share the same compatible analyzer invocation.  
+Covered directly by unit and smoke tests include:
 
-## Extended coverage
+- Common modules: `Framework.Common`, `Framework.Logging`, `Framework.Validation`
+- Source modules: CSV, JSON, XML, CustomScript, MSSQL, LDAP (config gates), XLSX (config gates)
+- Destination modules: CSV, MSSQL
+- Wizard helpers and wizard logging module
+- Module import/export smoke for all framework `.psm1` modules
 
-Additional mock/filesystem tests cover `Wizard.ProjectFiles`, `Wizard.FileSources`, `Wizard.Prompts`, `Wizard.Credentials`, `Wizard.Sources`, `Wizard.Destinations`, `Wizard.LogFacade`, `Destination.MSSQL`, `Source.MSSQL`, plus a bootstrap loader test.
-
-Further wizard helper coverage includes:
-
-- `Wizard.CustomScript`  
-- `Read-AdapterConfiguration`  
-- `Read-ScheduleConfiguration`  
-- `New-TaskRegistrationScriptFile`  
-- `Test-PathExists` / `Wizard.PreReqs` helper functions  
-- `Read-NonNegativeInteger` / `Read-ValidatedTimeValue`  
-
-## Framework 21.2.4 refactoring
-
-For 21.2.4 the two large script entry points were decoupled:
-
-- `New-ETLProject.ps1` now uses testable bootstrap / entry-point helpers  
-- Separate `Setup` prerequisite orchestration was removed; .NET / runtime checks and optional installation run entirely in the wizard  
-
-Additional unit tests cover `Wizard.EntryPoint` and `Wizard/Helpers/Wizard.PreReqs.ps1`.
+Interactive or side-effect-heavy entry scripts (`New-ETLProject.ps1`, `Register-Task.ps1`) are validated via syntax/analyzer/manifest checks instead of full automated execution.
