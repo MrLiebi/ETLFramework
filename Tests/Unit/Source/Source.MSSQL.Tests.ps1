@@ -62,7 +62,22 @@ Describe 'Source.MSSQL module' {
             Mock -ModuleName 'Source.MSSQL' Get-SqlConnectionCredential { [pscustomobject]@{ UserName = 'etl'; Password = 's3cr3t' } }
 
             Get-SqlConnectionString -Config @{ Server = 'sql01'; Database = 'FNMS'; AuthenticationMode = 'CredentialManager'; CredentialTarget = 'Target/One' } |
-                Should -Be 'Server=sql01;Database=FNMS;User ID=etl;Password=s3cr3t;'
+                Should -Be 'Server=sql01;Database=FNMS;Persist Security Info=False;'
+        }
+
+        It 'creates a SqlConnection with SqlCredential in credential-manager mode' {
+            Mock -ModuleName 'Source.MSSQL' Get-AuthenticationMode { 'CredentialManager' }
+            Mock -ModuleName 'Source.MSSQL' Get-SqlConnectionCredential { [pscustomobject]@{ UserName = 'etl'; Password = 's3cr3t' } }
+
+            $Connection = New-SqlConnection -Config @{ Server = 'sql01'; Database = 'FNMS'; AuthenticationMode = 'CredentialManager'; CredentialTarget = 'Target/One' }
+            try {
+                $Connection.GetType().FullName | Should -Be 'System.Data.SqlClient.SqlConnection'
+                $Connection.ConnectionString | Should -Match 'Data Source=sql01'
+                $Connection.ConnectionString | Should -Not -Match 'Password='
+            }
+            finally {
+                if ($Connection) { $Connection.Dispose() }
+            }
         }
     }
     }
