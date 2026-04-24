@@ -4,8 +4,6 @@ PowerShell-based **ETL framework** (release **1.0.x**) for repeatable data pipel
 
 The framework targets **Windows PowerShell 5.1**. Run the full test suite locally on **5.1** (see [Tests (local)](#tests-local)).
 
-Documentation, comments, and user-visible messages use **American English** spelling (for example *behavior*, *recognize*, *finalize*).
-
 ---
 
 ## Table of contents
