@@ -1,10 +1,8 @@
 # PS ETL Framework
 
-PowerShell-based **ETL framework** (release **23.1.x**) for repeatable data pipelines: interactive **project wizard**, modular **sources** and **destinations**, central **logging** and **validation**, optional **adapters** (e.g. Flexera), and integration with the **Windows Credential Manager**.
+PowerShell-based **ETL framework** (release **23.1.0) for repeatable data pipelines: interactive **project wizard**, modular **sources** and **destinations**, central **logging** and **validation**, optional **adapters** (e.g. Flexera), and integration with the **Windows Credential Manager**.
 
 The framework targets **Windows PowerShell 5.1**. Run the full test suite locally on **5.1** (see [Tests (local)](#tests-local)).
-
-Documentation, comments, and user-visible messages use **American English** spelling (for example *behavior*, *recognize*, *finalize*).
 
 ---
 
