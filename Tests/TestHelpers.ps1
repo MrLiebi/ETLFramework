@@ -279,7 +279,7 @@ function Import-TestableAsset {
                     [Parameter(Mandatory)][string]$ScriptDirectory,
                     [string]$DefaultBaseDirectory = '',
                     [bool]$LogFileAppend = $true,
-                    [string]$RequiredDotNetVersion = '4.7',
+                    [string]$RequiredDotNetVersion = '4.8.1',
                     [bool]$RequireDotNet = $true,
                     [bool]$AllowDotNetInstall = $true,
                     [string]$DotNetOfflineInstallerPath = ''

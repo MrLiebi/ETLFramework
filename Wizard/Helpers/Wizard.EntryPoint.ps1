@@ -49,7 +49,7 @@ function Start-NewEtlProjectWizard {
         [bool]   $LogFileAppend = $true,
 
         [ValidateSet('4.7','4.7.1','4.7.2','4.8','4.8.1')]
-        [string] $RequiredDotNetVersion = '4.7',
+        [string] $RequiredDotNetVersion = '4.8.1',
 
         [bool]   $RequireDotNet = $true,
         [bool]   $AllowDotNetInstall = $true,

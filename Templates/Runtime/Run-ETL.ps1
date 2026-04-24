@@ -8,7 +8,7 @@ imports required modules, executes extract and load phases, and
 handles logging and error management.
 
 .VERSION
-23.1.0
+1.0
 
 .AUTHOR
 ETL Framework

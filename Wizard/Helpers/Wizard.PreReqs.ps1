@@ -15,12 +15,27 @@ function Get-WizardDotNetReleaseMap {
     }
 }
 
+function Get-WizardSupportedDotNetVersions {
+    [CmdletBinding()]
+    param()
+
+    @(
+        [string[]](Get-WizardDotNetReleaseMap).Keys |
+            Sort-Object {
+                [version]($_ -replace '[^0-9\.]', '')
+            } -Descending
+    )
+}
+
 function Get-WizardDotNetFrameworkStatus {
     [CmdletBinding()]
     param(
-        [ValidateSet('4.7','4.7.1','4.7.2','4.8','4.8.1')]
-        [string] $MinimumVersion = '4.7'
+        [string] $MinimumVersion = '4.8.1'
     )
+
+    if ((Get-WizardSupportedDotNetVersions) -notcontains $MinimumVersion) {
+        throw "Unsupported .NET Framework minimum version: $MinimumVersion"
+    }
 
     $RegistryPath = 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full'
     $MinimumReleaseMap = Get-WizardDotNetReleaseMap
@@ -92,6 +107,61 @@ function Install-WizardDotNetFrameworkOffline {
     }
 }
 
+function Resolve-WizardBundledDotNetInstallerPath {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string] $FrameworkRoot,
+        [string] $MinimumVersion = '4.8.1'
+    )
+
+    if ((Get-WizardSupportedDotNetVersions) -notcontains $MinimumVersion) {
+        throw "Unsupported .NET Framework minimum version: $MinimumVersion"
+    }
+
+    $BundledInstallerMap = [ordered]@{
+        '4.8.1' = 'Templates\Installers\DotNet\NDP481-x86-x64-AllOS-ENU.exe'
+    }
+
+    $SelectedRelativePath = $null
+    if ($BundledInstallerMap.Contains($MinimumVersion)) {
+        $SelectedRelativePath = [string]$BundledInstallerMap[$MinimumVersion]
+    }
+    else {
+        $SelectedRelativePath = [string]$BundledInstallerMap['4.8.1']
+    }
+
+    $SelectedPath = Join-Path -Path $FrameworkRoot -ChildPath $SelectedRelativePath
+    if (Test-Path -Path $SelectedPath -PathType Leaf) {
+        return $SelectedPath
+    }
+
+    return ''
+}
+
+function Get-WizardBundledDotNetInstallerMetadata {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string] $FrameworkRoot,
+        [string] $MinimumVersion = '4.8.1'
+    )
+
+    $InstallerPath = Resolve-WizardBundledDotNetInstallerPath -FrameworkRoot $FrameworkRoot -MinimumVersion $MinimumVersion
+    if ([string]::IsNullOrWhiteSpace($InstallerPath) -or -not (Test-Path -Path $InstallerPath -PathType Leaf)) {
+        return [pscustomobject]@{
+            InstallerPath = ''
+            Present = $false
+            SizeBytes = 0
+        }
+    }
+
+    $InstallerItem = Get-Item -Path $InstallerPath -ErrorAction Stop
+    [pscustomobject]@{
+        InstallerPath = $InstallerItem.FullName
+        Present = $true
+        SizeBytes = [int64]$InstallerItem.Length
+    }
+}
+
 function Test-WizardExcelDataReaderTemplateDependency {
     [CmdletBinding()]
     param(
@@ -157,9 +227,13 @@ function Write-WizardDependencySummary {
 function Test-DotNetFrameworkPrerequisite {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)][ValidateSet('4.7','4.7.1','4.7.2','4.8','4.8.1')][string] $MinimumVersion,
+        [Parameter(Mandatory)][string] $MinimumVersion,
         [switch] $FailIfMissing
     )
+
+    if ((Get-WizardSupportedDotNetVersions) -notcontains $MinimumVersion) {
+        throw "Unsupported .NET Framework minimum version: $MinimumVersion"
+    }
 
     try {
         $Status = Get-WizardDotNetFrameworkStatus -MinimumVersion $MinimumVersion
@@ -202,8 +276,7 @@ function Test-DotNetFrameworkPrerequisite {
 function Invoke-WizardPrerequisiteWorkflow {
     [CmdletBinding()]
     param(
-        [ValidateSet('4.7','4.7.1','4.7.2','4.8','4.8.1')]
-        [string] $MinimumVersion = '4.7',
+        [string] $MinimumVersion = '4.8.1',
 
         [Parameter(Mandatory)][string] $FrameworkRoot,
 
@@ -211,6 +284,10 @@ function Invoke-WizardPrerequisiteWorkflow {
 
         [string] $OfflineInstallerPath = ''
     )
+
+    if ((Get-WizardSupportedDotNetVersions) -notcontains $MinimumVersion) {
+        throw "Unsupported .NET Framework minimum version: $MinimumVersion"
+    }
 
     Write-Log ("Required .NET Framework version: {0}" -f $MinimumVersion) -Level 'INFO'
 
@@ -260,6 +337,13 @@ function Invoke-WizardPrerequisiteWorkflow {
 
     if (-not (Test-WizardIsAdministrator)) {
         throw 'Administrative privileges are required to install .NET Framework.'
+    }
+
+    if ([string]::IsNullOrWhiteSpace($OfflineInstallerPath)) {
+        $OfflineInstallerPath = Resolve-WizardBundledDotNetInstallerPath -FrameworkRoot $FrameworkRoot -MinimumVersion $MinimumVersion
+        if (-not [string]::IsNullOrWhiteSpace($OfflineInstallerPath)) {
+            Write-Log ("Using bundled .NET offline installer: {0}" -f $OfflineInstallerPath) -Level 'INFO'
+        }
     }
 
     if ([string]::IsNullOrWhiteSpace($OfflineInstallerPath)) {

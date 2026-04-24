@@ -1,6 +1,6 @@
 # PS ETL Framework
 
-PowerShell-based **ETL framework** (release **23.1.0**) for repeatable data pipelines: interactive **project wizard**, modular **sources** and **destinations**, central **logging** and **validation**, optional **adapters** (e.g. Flexera), and integration with the **Windows Credential Manager**.
+PowerShell-based **ETL framework** (release **1.0.x**) for repeatable data pipelines: interactive **project wizard**, modular **sources** and **destinations**, central **logging** and **validation**, optional **adapters** (e.g. Flexera), and integration with the **Windows Credential Manager**.
 
 The framework targets **Windows PowerShell 5.1**. Run the full test suite locally on **5.1** (see [Tests (local)](#tests-local)).
 
@@ -41,9 +41,12 @@ The framework targets **Windows PowerShell 5.1**. Run the full test suite locall
 | Component | Notes |
 |-----------|--------|
 | **Windows PowerShell** | **5.1** (target runtime; PowerShell 7 is not assumed for production wizard/runtime paths). |
-| **.NET Framework** | The wizard checks/installs a suitable version (default e.g. 4.7; see parameters below). |
+| **.NET Framework** | The wizard checks/installs a suitable version (default `4.8.1`; see parameters below). |
 | **Operating system** | Windows (Credential Manager, scheduled tasks, COM/Task Scheduler depending on feature). |
 | **Optional** | SQL Server access, LDAP, Excel-free XLSX via DLLs under `Templates\Modules\Dependencies\ExcelDataReader`. |
+
+Bundled component (no extra download needed):  
+`Templates\Installers\DotNet\NDP481-x86-x64-AllOS-ENU.exe` (offline installer used by the wizard when .NET Framework 4.8.1 is missing).
 
 For **test execution**, modules from the PowerShell Gallery are required (see [Tests (local)](#tests-local)).
 
@@ -59,7 +62,7 @@ git clone https://github.com/MrLiebi/ETLFramework.git
 Set-Location .\ETLFramework
 ```
 
-On disk, this is the same tree as after `git clone` or extracting a release ZIP (e.g. `PS-ETL-Framework-v23.1.0`).
+On disk, this is the same tree as after `git clone` or extracting a release ZIP (e.g. `PS-ETL-Framework-v1.0`).
 
 ---
 
@@ -78,10 +81,10 @@ Set-Location C:\Path\To\ETLFramework
 |-----------|------|-------------|
 | `DefaultBaseDirectory` | `string` | Default base directory for new projects (e.g. `C:\ProgramData\SoftwareOne\01_Import`). |
 | `LogFileAppend` | `bool` | Append to an existing log file. |
-| `RequiredDotNetVersion` | `string` | `ValidateSet`: `'4.7'`, `'4.7.1'`, `'4.7.2'`, `'4.8'`, `'4.8.1'`. |
+| `RequiredDotNetVersion` | `string` | `ValidateSet`: `'4.7'`, `'4.7.1'`, `'4.7.2'`, `'4.8'`, `'4.8.1'` (default `4.8.1`). |
 | `RequireDotNet` | `bool` | Whether to validate .NET Framework. |
 | `AllowDotNetInstall` | `bool` | Whether a missing .NET install may be offered. |
-| `DotNetOfflineInstallerPath` | `string` | Optional path to an offline installer. |
+| `DotNetOfflineInstallerPath` | `string` | Optional explicit path to an offline installer. If omitted, the wizard uses the bundled installer under `Templates\Installers\DotNet\NDP481-x86-x64-AllOS-ENU.exe` when available. |
 
 The flow uses `Wizard\Helpers\Wizard.EntryPoint.ps1`, loads `Wizard\Bootstrap.ps1`, and runs orchestration in `Wizard.ProjectWizard`. Prerequisites (.NET, etc.) are handled in the wizard via `Wizard.PreReqs`.
 
@@ -169,7 +172,7 @@ Tester notes and coverage hints: [`Tests/TESTER-AUDIT.md`](Tests/TESTER-AUDIT.md
 
 ## Versioning
 
-Current release line in the repository: **23.1.0** (see `CHANGELOG.md` and comments in entry scripts).
+Current release line in the repository: **1.0** (see `CHANGELOG.md` and comments in entry scripts).
 Repository-internal release traceability is tracked in `ReleaseManifest.psd1` (version, intended tag, release commit, release URL).
 
 ### GitHub releases (required practice)
@@ -177,8 +180,8 @@ Repository-internal release traceability is tracked in `ReleaseManifest.psd1` (v
 Whenever you finish a **local framework release** (version numbers and `CHANGELOG.md` updated on `main`), also publish it on GitHub so others can find binaries, notes, and an exact Git ref:
 
 1. Commit and push the release changes to `main`.
-2. Create an **annotated tag** for that commit, e.g. `git tag -a v23.1.0 -m "PS ETL Framework 23.1.0"` then `git push origin v23.1.0`.
-3. On GitHub, open **[Releases](https://github.com/MrLiebi/ETLFramework/releases)** → **Draft a new release** → choose that tag → set the title (e.g. `23.1.0`) → paste the matching **CHANGELOG** section into the description → **Publish release**.
+2. Create an **annotated tag** for that commit, e.g. `git tag -a v1.0 -m "PS ETL Framework 1.0"` then `git push origin v1.0`.
+3. On GitHub, open **[Releases](https://github.com/MrLiebi/ETLFramework/releases)** → **Draft a new release** → choose that tag → set the title (e.g. `1.0`) → paste the matching **CHANGELOG** section into the description → **Publish release**.
 
 Optional: attach a ZIP of the framework folder for users who do not use `git clone`. Do **not** move or reuse a tag after publish; create a new patch version instead.
 

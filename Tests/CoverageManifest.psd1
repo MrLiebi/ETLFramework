@@ -18,6 +18,7 @@
     'Templates/Modules/Source/Source.MSSQL.psm1' = @{ Coverage = @('Syntax', 'Analyzer', 'ModuleExports', 'Unit'); Notes = 'MSSQL source with unit tests for configuration and connection helpers.' }
     'Templates/Modules/Source/Source.XLSX.psm1' = @{ Coverage = @('Syntax', 'Analyzer', 'ModuleExports', 'Unit'); Notes = 'XLSX source: configuration validation via unit tests without workbook runtime.' }
     'Templates/Modules/Source/Source.XML.psm1' = @{ Coverage = @('Syntax', 'Analyzer', 'ModuleExports', 'Unit'); Notes = 'XML source with flattening/extraction tests.' }
+    'Templates/Installers/DotNet/NDP481-x86-x64-AllOS-ENU.exe' = @{ Coverage = @('Manifest'); Notes = 'Bundled offline .NET Framework 4.8.1 installer used by wizard prerequisite workflow.' }
 
     'Wizard/Bootstrap.ps1' = @{ Coverage = @('Syntax', 'Analyzer', 'Unit'); Notes = 'Bootstrap script loaded via dynamic loader test.' }
     'Wizard/Helpers/Wizard.Adapter.ps1' = @{ Coverage = @('Syntax', 'Analyzer', 'Unit'); Notes = 'Adapter helpers with template/file tests.' }

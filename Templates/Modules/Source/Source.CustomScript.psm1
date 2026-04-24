@@ -7,7 +7,7 @@ Executes a project-local custom script and validates that the script
 returns structured object data for further ETL processing.
 
 .VERSION
-23.1.0
+1.0
 #>
 
 $CommonModulePath = Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -ChildPath 'Common\Framework.Common.psm1'

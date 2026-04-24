@@ -21,7 +21,7 @@ function Invoke-NewEtlProjectWizard {
         [bool]   $LogFileAppend = $true,
 
         [ValidateSet('4.7','4.7.1','4.7.2','4.8','4.8.1')]
-        [string] $RequiredDotNetVersion = '4.7',
+        [string] $RequiredDotNetVersion = '4.8.1',
 
         [bool]   $RequireDotNet = $true,
         [bool]   $AllowDotNetInstall = $true,
@@ -50,7 +50,7 @@ function Invoke-NewEtlProjectWizard {
     try {
         Clear-Host
         Write-Ui "==============================================" -ForegroundColor Magenta
-        Write-Ui "      ETL SOLUTION WIZARD v23.1.0             " -ForegroundColor Magenta
+        Write-Ui "      ETL SOLUTION WIZARD v1.0                " -ForegroundColor Magenta
         Write-Ui "==============================================" -ForegroundColor Magenta
 
         Write-Log "--- SCRIPT STARTED ---" -Level 'INFO'

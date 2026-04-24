@@ -8,7 +8,7 @@ further ETL processing. Supports direct file selection or folder + pattern
 resolution and registers the selected source file for post-import actions.
 
 .VERSION
-23.1.0
+1.0
 #>
 
 $CommonModulePath = Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -ChildPath 'Common\Framework.Common.psm1'
