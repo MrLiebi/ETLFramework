@@ -52,7 +52,8 @@ function Get-SafePathSegment {
     )
 
     $Result = $Value.Trim()
-    foreach ($InvalidChar in [System.IO.Path]::GetInvalidFileNameChars()) {
+    $InvalidChars = [System.IO.Path]::GetInvalidFileNameChars() + [char[]]@(':','*','?','"','<','>','|')
+    foreach ($InvalidChar in ($InvalidChars | Select-Object -Unique)) {
         $Result = $Result.Replace([string]$InvalidChar, '_')
     }
 

@@ -48,7 +48,7 @@ Describe 'Wizard.ProjectFiles helpers' {
             $TargetPath = Copy-CustomSourceScriptToProject -SourcePath $SourcePath -ProjectScriptDirectory $ProjectScriptDirectory -StepId '07' -StepName 'Users: EU/West'
 
             Test-Path -Path $TargetPath -PathType Leaf | Should -BeTrue
-            [System.IO.Path]::GetFileName($TargetPath) | Should -Match '^Step_07_Users: EU_West_Get-Users\.ps1$'
+            [System.IO.Path]::GetFileName($TargetPath) | Should -Match '^Step_07_Users_ EU_West_Get-Users\.ps1$'
         }
     }
 

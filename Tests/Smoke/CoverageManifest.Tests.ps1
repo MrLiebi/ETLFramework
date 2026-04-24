@@ -8,7 +8,7 @@ BeforeAll {
     $script:ManifestPath = [System.IO.Path]::GetFullPath($script:ManifestPath)
     $script:CoverageManifest = Import-PowerShellDataFile -Path $script:ManifestPath
     $script:FrameworkRelativePaths = @(
-        Get-FrameworkSourceFiles -FrameworkRoot $script:FrameworkRoot |
+        Get-FrameworkManifestTrackedFiles -FrameworkRoot $script:FrameworkRoot |
             ForEach-Object { Get-RelativeFrameworkPath -FrameworkRoot $script:FrameworkRoot -Path $_.FullName }
     )
 }

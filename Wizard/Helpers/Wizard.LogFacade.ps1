@@ -2,7 +2,7 @@
     Logging facade for wizard helper scripts.
 #>
 
-function Write-Log {
+function Write-WizardFacadeLog {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)][string] $Message,
@@ -11,3 +11,5 @@ function Write-Log {
 
     Write-WizardLog -Context $Script:LogContext -Message $Message -Level $Level
 }
+
+Set-Alias -Name Write-Log -Value Write-WizardFacadeLog -Scope Script

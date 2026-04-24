@@ -14,7 +14,7 @@ Describe 'Wizard.LogFacade helper' {
     It 'forwards log messages to Write-WizardLog with the shared wizard context' {
         Mock -ModuleName $script:Module.Name Write-WizardLog {}
 
-        Write-Log -Message 'delegated' -Level 'WARN'
+        Write-WizardFacadeLog -Message 'delegated' -Level 'WARN'
 
         Should -Invoke Write-WizardLog -ModuleName $script:Module.Name -Times 1 -ParameterFilter {
             $Context.LogFile -eq 'wizard.log' -and $Message -eq 'delegated' -and $Level -eq 'WARN'

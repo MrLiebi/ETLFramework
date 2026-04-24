@@ -32,7 +32,7 @@ Describe 'Wizard.FileSources helpers' {
             $Result = Read-FileSourcePostImportConfiguration -SourceType 'CSV'
 
             $Result.BackupAfterImport | Should -BeTrue
-            $Result.BackupPath | Should -Be 'INPUT\Archive'
+            $Result.BackupPath | Should -Be 'INPUT\Archive\'
             $Result.DeleteAfterImport | Should -BeFalse
         }
     }
