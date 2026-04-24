@@ -155,6 +155,7 @@ Output files (by default; not committed because of `.gitignore`):
 
 More detail on test layers: [`Tests/README-Extended.md`](Tests/README-Extended.md).  
 Tester notes and coverage hints: [`Tests/TESTER-AUDIT.md`](Tests/TESTER-AUDIT.md).
+`RunEtl.RuntimeSmoke.Tests.ps1` resolves a compatible external host automatically (`powershell.exe` on Windows when available, otherwise `pwsh`) so the runtime smoke layer is not tied to one executable name.
 
 ---
 
@@ -171,6 +172,7 @@ Tester notes and coverage hints: [`Tests/TESTER-AUDIT.md`](Tests/TESTER-AUDIT.md
 ## Versioning
 
 Current release line in the repository: **23.1.0** (see `CHANGELOG.md` and comments in entry scripts).
+Repository-internal release traceability is tracked in `ReleaseManifest.psd1` (version, intended tag, release commit, release URL).
 
 ### GitHub releases (required practice)
 

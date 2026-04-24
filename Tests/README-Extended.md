@@ -42,7 +42,7 @@ Covered directly by unit and smoke tests, including:
 - Module import/export for all `.psm1` modules  
 
 Interactive or side-effect-heavy entry scripts such as `New-ETLProject.ps1` and `Register-Task.ps1` are guarded via **syntax + analyzer + coverage manifest** instead of being executed automatically in the test run.
-`Run-ETL.ps1` additionally has a non-interactive smoke test with mocked source/destination adapters to validate runtime orchestration and exit behavior without external systems.
+`Run-ETL.ps1` additionally has a non-interactive smoke test with mocked source/destination adapters to validate runtime orchestration and exit behavior without external systems. The smoke test resolves a compatible external host automatically (`powershell.exe` on Windows when available, otherwise `pwsh`) so execution is not bound to a single executable name.
 
 ## Run locally
 
