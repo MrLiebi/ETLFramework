@@ -11,7 +11,7 @@ This module implements the Invoke-Extract entry point used by
 the ETL runtime.
 
 .VERSION
-23.1.0
+1.0
 
 .AUTHOR
 ETL Framework

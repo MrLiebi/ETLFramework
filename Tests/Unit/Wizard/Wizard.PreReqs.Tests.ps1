@@ -53,6 +53,27 @@ Describe 'Wizard.PreReqs helpers' {
         ($Entries | Where-Object Name -EQ 'System.Text.Encoding.CodePages').Optional | Should -BeTrue
     }
 
+    It 'returns sorted supported .NET versions in descending order' {
+        $Versions = @(Get-WizardSupportedDotNetVersions)
+        $Versions | Should -Be @('4.8.1','4.8','4.7.2','4.7.1','4.7')
+    }
+
+    It 'returns bundled installer metadata when installer exists' {
+        Mock -ModuleName $script:Module.Name Resolve-WizardBundledDotNetInstallerPath { 'C:\Framework\Templates\Installers\DotNet\NDP481-x86-x64-AllOS-ENU.exe' }
+        Mock -ModuleName $script:Module.Name Test-Path { $true }
+        Mock -ModuleName $script:Module.Name Get-Item {
+            [pscustomobject]@{
+                FullName = 'C:\Framework\Templates\Installers\DotNet\NDP481-x86-x64-AllOS-ENU.exe'
+                Length = 77594584
+            }
+        }
+
+        $Metadata = Get-WizardBundledDotNetInstallerMetadata -FrameworkRoot 'C:\Framework' -MinimumVersion '4.8.1'
+        $Metadata.Present | Should -BeTrue
+        $Metadata.SizeBytes | Should -Be 77594584
+        $Metadata.InstallerPath | Should -Be 'C:\Framework\Templates\Installers\DotNet\NDP481-x86-x64-AllOS-ENU.exe'
+    }
+
     It 'returns an unmet status when the prerequisite is missing and installation is disabled' {
         Mock -ModuleName $script:Module.Name Test-WizardExcelDataReaderTemplateDependency { [pscustomobject]@{ Present = $true; DllPath='x'; CodePagesPresent=$true; CodePagesDllPath='y'; SystemMemoryPresent=$true; SystemMemoryPath='z'; SystemBuffersPresent=$true; SystemBuffersPath='b'; UnsafePresent=$true; UnsafeDllPath='u' } }
         Mock -ModuleName $script:Module.Name Write-WizardDependencySummary {}
@@ -96,6 +117,33 @@ Describe 'Wizard.PreReqs helpers' {
         $Result.RequirementMet | Should -BeTrue
         $Result.InstallAttempted | Should -BeTrue
         Assert-MockCalled -CommandName Install-WizardDotNetFrameworkOffline -ModuleName $script:Module.Name -Times 1 -Exactly
+        Remove-Variable -Name WizardPreReqsStatusCallCount -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'prefers bundled installer when explicit path is missing' {
+        Mock -ModuleName $script:Module.Name Test-WizardExcelDataReaderTemplateDependency { [pscustomobject]@{ Present = $true; DllPath='x'; CodePagesPresent=$true; CodePagesDllPath='y'; SystemMemoryPresent=$true; SystemMemoryPath='z'; SystemBuffersPresent=$true; SystemBuffersPath='b'; UnsafePresent=$true; UnsafeDllPath='u' } }
+        Mock -ModuleName $script:Module.Name Write-WizardDependencySummary {}
+        $global:WizardPreReqsStatusCallCount = 0
+        Mock -ModuleName $script:Module.Name Get-WizardDotNetFrameworkStatus {
+            $global:WizardPreReqsStatusCallCount++
+            if ($global:WizardPreReqsStatusCallCount -eq 1) { return [pscustomobject]@{ Installed = $false; Release = $null; DetectedVersion = 'Not detected'; MinimumVersion = '4.8.1'; MinimumRelease = 533320; RequirementMet = $false } }
+            return [pscustomobject]@{ Installed = $true; Release = 533320; DetectedVersion = '4.8.1'; MinimumVersion = '4.8.1'; MinimumRelease = 533320; RequirementMet = $true }
+        }
+        Mock -ModuleName $script:Module.Name Read-BooleanChoice { $true }
+        Mock -ModuleName $script:Module.Name Test-WizardIsAdministrator { $true }
+        Mock -ModuleName $script:Module.Name Resolve-WizardBundledDotNetInstallerPath { 'C:\Framework\Templates\Installers\DotNet\NDP481-x86-x64-AllOS-ENU.exe' }
+        Mock -ModuleName $script:Module.Name Read-InputValue { throw 'Read-InputValue should not be called when bundled installer exists.' }
+        Mock -ModuleName $script:Module.Name Install-WizardDotNetFrameworkOffline { $true }
+        Mock -ModuleName $script:Module.Name Start-Sleep {}
+
+        $Result = Invoke-WizardPrerequisiteWorkflow -MinimumVersion '4.8.1' -FrameworkRoot 'C:\Framework' -AllowInstallIfMissing:$true
+
+        $Result.RequirementMet | Should -BeTrue
+        $Result.InstallAttempted | Should -BeTrue
+        Assert-MockCalled -CommandName Resolve-WizardBundledDotNetInstallerPath -ModuleName $script:Module.Name -Times 1 -Exactly
+        Assert-MockCalled -CommandName Install-WizardDotNetFrameworkOffline -ModuleName $script:Module.Name -Times 1 -Exactly -ParameterFilter {
+            $InstallerPath -eq 'C:\Framework\Templates\Installers\DotNet\NDP481-x86-x64-AllOS-ENU.exe'
+        }
         Remove-Variable -Name WizardPreReqsStatusCallCount -Scope Global -ErrorAction SilentlyContinue
     }
 }

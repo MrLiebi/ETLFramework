@@ -10,7 +10,7 @@
     Alexander Liebold
 
     .VERSION
-23.1.0
+1.0
 
     .NOTES
     User-visible text and comments follow American English spelling.
@@ -22,7 +22,7 @@ param(
     [bool]   $LogFileAppend = $true,
 
     [ValidateSet('4.7','4.7.1','4.7.2','4.8','4.8.1')]
-    [string] $RequiredDotNetVersion = '4.7',
+    [string] $RequiredDotNetVersion = '4.8.1',
 
     [bool]   $RequireDotNet = $true,
     [bool]   $AllowDotNetInstall = $true,
