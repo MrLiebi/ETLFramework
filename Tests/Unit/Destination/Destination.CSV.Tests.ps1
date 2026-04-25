@@ -55,6 +55,32 @@ Describe 'Destination.CSV module' {
             $Lines[2] | Should -Match 'Bob'
         }
 
+        It 'accepts simulated LDAP output rows and writes them unchanged to CSV' {
+            $Target = Join-Path -Path $env:ETL_PROJECT_ROOT -ChildPath 'OUT\ldap-users.csv'
+            $LdapRows = @(
+                [PSCustomObject]@{
+                    distinguishedName = 'CN=Alice Smith,OU=Users,DC=example,DC=org'
+                    mail              = 'alice@example.org'
+                    samAccountName    = 'asmith'
+                    whenChanged       = '2026-04-25 12:15:00'
+                },
+                [PSCustomObject]@{
+                    distinguishedName = 'CN=Bob Jones,OU=Users,DC=example,DC=org'
+                    mail              = 'bob@example.org'
+                    samAccountName    = 'bjones'
+                    whenChanged       = '2026-04-24 09:00:00'
+                }
+            )
+
+            $LdapRows | Invoke-Load -Config @{ Path = '.\OUT\ldap-users.csv'; Delimiter = ';'; Encoding = 'UTF8'; Force = $true; BatchSize = 2 }
+
+            Test-Path -Path $Target -PathType Leaf | Should -BeTrue
+            $CsvContent = Get-Content -Path $Target -Raw
+            $CsvContent | Should -Match 'distinguishedName'
+            $CsvContent | Should -Match 'alice@example.org'
+            $CsvContent | Should -Match 'CN=Bob Jones,OU=Users,DC=example,DC=org'
+        }
+
         It 'supports append mode with matching schema' {
             $Target = Join-Path -Path $env:ETL_PROJECT_ROOT -ChildPath 'OUT\append-users.csv'
             New-Item -Path (Split-Path -Path $Target -Parent) -ItemType Directory -Force | Out-Null
