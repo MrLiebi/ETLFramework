@@ -158,6 +158,26 @@ More detail on test layers: [`Tests/README-Extended.md`](Tests/README-Extended.m
 Tester notes and coverage hints: [`Tests/TESTER-AUDIT.md`](Tests/TESTER-AUDIT.md).
 `RunEtl.RuntimeSmoke.Tests.ps1` resolves a compatible external host automatically (`powershell.exe` on Windows when available, otherwise `pwsh`) so the runtime smoke layer is not tied to one executable name.
 
+### Generated project matrix test environment
+
+To validate generated projects with multiple config combinations in one run, use the matrix runner:
+
+```powershell
+.\Tests\Invoke-GeneratedProjectMatrix.ps1
+```
+
+This creates isolated test projects under `Tests\TestResults\GeneratedProjectMatrix`, executes each scenario via copied `RUN\Run-ETL.ps1`, and verifies expected outcomes (success paths and intentional failure paths).
+
+Optional examples:
+
+```powershell
+# Run only selected scenarios
+.\Tests\Invoke-GeneratedProjectMatrix.ps1 -Scenario csv_basic,json_rootpath
+
+# Emit structured summary for further automation
+.\Tests\Invoke-GeneratedProjectMatrix.ps1 -PassThru
+```
+
 ---
 
 ## Further documentation
