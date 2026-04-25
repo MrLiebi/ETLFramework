@@ -25,6 +25,30 @@ Set-Location <FrameworkRoot>
 # .\Tests\Invoke-ExtendedFrameworkTests.ps1 -SkipCodeCoverage
 ```
 
+## Generated project matrix environment
+
+To validate generated project layouts with different runtime configs, use the matrix runner:
+
+```powershell
+Set-Location <FrameworkRoot>
+.\Tests\Invoke-GeneratedProjectMatrix.ps1
+```
+
+Default scenarios:
+
+- `csv_basic` (CSV -> CSV, backup after import)
+- `json_rootpath` (JSON with `RootPath` -> CSV)
+- `xml_delete_after_import` (XML -> CSV, delete source after import)
+- `missing_adapter_failure` (expected runtime failure path for missing adapters)
+
+Run only selected scenarios:
+
+```powershell
+.\Tests\Invoke-GeneratedProjectMatrix.ps1 -Scenario @('csv_basic','missing_adapter_failure')
+```
+
+Artifacts are written below `Tests\TestResults\GeneratedProjectMatrix`, one isolated generated project per scenario.
+
 ## Output artifacts
 
 By default the runner writes to `Tests\TestResults`:
