@@ -332,6 +332,74 @@ Describe 'Destination.MSSQL module' {
                     $Level -eq 'WARN' -and $Message -like 'Failed to remove staging table*'
                 }
             }
+
+            It 'processes simulated SQL-style pipeline rows through Invoke-Load without real DB access' {
+                $OpenedConnections = [System.Collections.Generic.List[object]]::new()
+                $BulkCalls = [System.Collections.Generic.List[object]]::new()
+                $TrackedTransactions = [System.Collections.Generic.List[object]]::new()
+
+                Mock -ModuleName 'Destination.MSSQL' New-SqlConnection {
+                    $Transaction = [pscustomobject]@{}
+                    $null = $Transaction | Add-Member -MemberType NoteProperty -Name CommitCount -Value 0 -Force
+                    $null = $Transaction | Add-Member -MemberType NoteProperty -Name RollbackCount -Value 0 -Force
+                    $null = $Transaction | Add-Member -MemberType ScriptMethod -Name Commit -Value { $this.CommitCount++ } -Force
+                    $null = $Transaction | Add-Member -MemberType ScriptMethod -Name Rollback -Value {} -Force
+                    $null = $Transaction | Add-Member -MemberType ScriptMethod -Name Dispose -Value {} -Force
+                    [void]$TrackedTransactions.Add($Transaction)
+
+                    $Connection = [pscustomobject]@{}
+                    $null = $Connection | Add-Member -MemberType ScriptMethod -Name Open -Value {} -Force
+                    $null = $Connection | Add-Member -MemberType ScriptMethod -Name Close -Value {} -Force
+                    $null = $Connection | Add-Member -MemberType ScriptMethod -Name Dispose -Value {} -Force
+                    $null = $Connection | Add-Member -MemberType ScriptMethod -Name BeginTransaction -Value { return $Transaction } -Force
+                    [void]$OpenedConnections.Add($Connection)
+                    return $Connection
+                }
+
+                Mock -ModuleName 'Destination.MSSQL' Assert-ExistingTargetTableCompatible {}
+
+                Mock -ModuleName 'Destination.MSSQL' Invoke-SqlBulkLoad {
+                    param($Connection, $QualifiedTableName, $DataTable, $ColumnMetadata, $BulkCopyTimeout, $Transaction)
+                    [void]$BulkCalls.Add([pscustomobject]@{
+                        RowCount = $DataTable.Rows.Count
+                        Target   = $QualifiedTableName
+                    })
+                }
+
+                $Rows = @(
+                    [pscustomobject]@{
+                        Id          = 1001
+                        ChangedDate = [datetime]'2026-04-20T10:30:00Z'
+                        Amount      = [decimal]13.37
+                        IsActive    = $true
+                    },
+                    [pscustomobject]@{
+                        Id          = 1002
+                        ChangedDate = [datetime]'2026-04-21T08:15:00Z'
+                        Amount      = [decimal]99.50
+                        IsActive    = $false
+                    }
+                )
+
+                $Config = @{
+                    Server              = 'localhost'
+                    Database            = 'FNMS'
+                    TableName           = 'StageUsers'
+                    Schema              = 'dbo'
+                    DropCreate          = $false
+                    BatchSize           = 1
+                    InferenceSampleSize = 1
+                    BulkCopyTimeout     = 60
+                }
+
+                $Rows | Invoke-Load -Config $Config
+
+                $OpenedConnections.Count | Should -Be 1
+                $TrackedTransactions.Count | Should -Be 1
+                $BulkCalls.Count | Should -Be 2
+                ($BulkCalls | Measure-Object -Property RowCount -Sum).Sum | Should -Be 2
+                $true | Should -BeTrue
+            }
         }
 
         Context 'Existing table compatibility checks' {
