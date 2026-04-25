@@ -39,6 +39,11 @@ Describe 'Source.XLSX module' {
                 Convert-ExcelCellValueToText -Value 42 | Should -Be '42'
             }
 
+            It 'resolves relative source path through project path helper' {
+                Mock -ModuleName 'Source.XLSX' Resolve-EtlProjectPath { '/tmp/project/DATA/book.xlsx' }
+                Resolve-AbsolutePath -Path 'DATA/book.xlsx' | Should -Be '/tmp/project/DATA/book.xlsx'
+            }
+
             It 'normalizes duplicate and empty header names' {
                 $Seen = @{}
                 Get-NormalizedHeaderName -Value 'Name' -ColumnNumber 1 -SeenHeaderNames $Seen | Should -Be 'Name'
@@ -68,6 +73,11 @@ Describe 'Source.XLSX module' {
                 Set-Content -Path (Join-Path -Path $ManyFolder -ChildPath 'a.xlsx') -Value 'a' -Encoding UTF8
                 Set-Content -Path (Join-Path -Path $ManyFolder -ChildPath 'b.xlsx') -Value 'b' -Encoding UTF8
                 { Resolve-SourceWorkbookFile -ResolvedPath $ManyFolder -FilePattern '*.xlsx' } | Should -Throw '*requires exactly one matching file*'
+            }
+
+            It 'throws when resolved workbook path does not exist as file or folder' {
+                $MissingPath = Join-Path -Path $TestDrive -ChildPath 'missing/path'
+                { Resolve-SourceWorkbookFile -ResolvedPath $MissingPath -FilePattern '*.xlsx' } | Should -Throw '*path not found*'
             }
         }
     }

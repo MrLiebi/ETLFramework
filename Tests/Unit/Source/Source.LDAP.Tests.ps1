@@ -14,8 +14,8 @@ Describe 'Source.LDAP module' {
 
     InModuleScope 'Source.LDAP' {
         Context 'Helper functions' {
-            It 'normalizes property selection to wildcard when no usable properties are provided' {
-                Get-ValidatedLdapProperties -Properties @(' ') | Should -Be @('*')
+            It 'returns explicit property selection when wildcard is absent' {
+                Get-ValidatedLdapProperties -Properties @('mail', 'cn') | Should -Be @('mail', 'cn')
             }
 
             It 'returns wildcard when wildcard is explicitly requested' {
@@ -32,12 +32,14 @@ Describe 'Source.LDAP module' {
             It 'converts LDAP value variants (GUID, bytes, timestamps)' {
                 $Guid = [guid]'00112233-4455-6677-8899-aabbccddeeff'
                 Convert-LdapValue -Value $Guid.ToByteArray() -AttributeName 'objectGuid' | Should -Be $Guid.ToString()
+                Convert-LdapValue -Value $Guid.ToString() -AttributeName 'objectGuid' | Should -Be $Guid.ToString()
 
                 $FileTimeValue = ([datetime]'2026-04-20T10:30:00Z').ToFileTimeUtc()
                 Convert-LdapValue -Value $FileTimeValue -AttributeName 'lastLogonTimestamp' | Should -Be '2026-04-20 10:30:00'
 
                 $ByteText = [System.Text.Encoding]::UTF8.GetBytes("alpha$([char]0)")
                 Convert-LdapValue -Value $ByteText -AttributeName 'description' | Should -Be 'alpha'
+                Convert-LdapValue -Value 'S-1-5-18' -AttributeName 'objectSid' | Should -Be 'S-1-5-18'
             }
         }
 
@@ -61,6 +63,11 @@ Describe 'Source.LDAP module' {
                 $env:ETL_ALLOW_DB_CONNECTIONS = '1'
                 { Assert-NonInteractiveLdapConnectionAllowed -Config @{ Server = 'ldap.example.org' } } | Should -Not -Throw
                 Remove-Item Env:ETL_ALLOW_DB_CONNECTIONS -ErrorAction SilentlyContinue
+            }
+
+            It 'returns without error when server is empty' {
+                Remove-Item Env:ETL_ALLOW_DB_CONNECTIONS -ErrorAction SilentlyContinue
+                { Assert-NonInteractiveLdapConnectionAllowed -Config @{ Server = '' } } | Should -Not -Throw
             }
         }
 
