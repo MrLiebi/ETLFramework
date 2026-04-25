@@ -69,6 +69,10 @@ Describe 'Framework.Common' {
 
                 Import-EtlAssemblyIfNeeded -AssemblyPath $AssemblyPath | Should -BeTrue
             }
+
+            It 'returns false when the assembly file does not exist' {
+                Import-EtlAssemblyIfNeeded -AssemblyPath (Join-Path -Path $TestDrive -ChildPath 'missing.dll') | Should -BeFalse
+            }
         }
 
         Context 'New-EtlModuleContext' {
@@ -142,6 +146,32 @@ Describe 'Framework.Common' {
                 ($Logged -join ' | ') | Should -Match 'Error location: Line 5'
                 ($Logged -join ' | ') | Should -Match 'StackTrace: at Test: line 5'
                 ($Logged -join ' | ') | Should -Match 'InnerException: Inner failure'
+            }
+        }
+
+        Context 'Import-EtlCredentialSupport' {
+            It 'returns immediately when Get-StoredCredential is already available' {
+                Mock -ModuleName $script:Module.Name Get-Command { [pscustomobject]@{ Name = 'Get-StoredCredential' } } -ParameterFilter { $Name -eq 'Get-StoredCredential' }
+                Mock -ModuleName $script:Module.Name Import-Module {}
+
+                Import-EtlCredentialSupport -ModuleRoot (Join-Path -Path $TestDrive -ChildPath 'Modules')
+
+                Assert-MockCalled -CommandName Import-Module -ModuleName $script:Module.Name -Times 0
+            }
+
+            It 'imports credential module from discovered candidate path' {
+                $ProjectRoot = Join-Path -Path $TestDrive -ChildPath 'Project'
+                $ModuleRoot = Join-Path -Path $ProjectRoot -ChildPath 'RUN/Modules/Source'
+                $CredentialPath = Join-Path -Path $ProjectRoot -ChildPath 'RUN/Modules/Credential/Credential.Manager.psm1'
+                New-Item -Path (Split-Path -Path $CredentialPath -Parent) -ItemType Directory -Force | Out-Null
+                Set-Content -Path $CredentialPath -Value '# module' -Encoding UTF8
+
+                Mock -ModuleName $script:Module.Name Get-Command { $null } -ParameterFilter { $Name -eq 'Get-StoredCredential' }
+                Mock -ModuleName $script:Module.Name Import-Module {}
+
+                Import-EtlCredentialSupport -ModuleRoot $ModuleRoot
+
+                Assert-MockCalled -CommandName Import-Module -ModuleName $script:Module.Name -Times 1 -Exactly -ParameterFilter { $Name -eq $CredentialPath }
             }
         }
 }

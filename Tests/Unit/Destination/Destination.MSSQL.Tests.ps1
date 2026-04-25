@@ -301,6 +301,71 @@ Describe 'Destination.MSSQL module' {
                 Start-SqlTransactionIfNeeded -State @{ Connection = $FakeState.Connection; UseStagingTable = $true; Transaction = $null; QualifiedTableName = '[dbo].[Users]' }
                 $FakeState.Transaction | Should -BeNullOrEmpty
             }
+
+            It 'skips staging cleanup when conditions are not met and warns on drop failure' {
+                Mock -ModuleName 'Destination.MSSQL' Write-ModuleLog {}
+
+                Remove-StagingTableIfPresent -State @{
+                    UseStagingTable      = $false
+                    StagingSwapCompleted = $false
+                    Connection           = [pscustomobject]@{}
+                }
+                Should -Invoke Write-ModuleLog -ModuleName 'Destination.MSSQL' -Times 0
+
+                $FailingConnection = [pscustomobject]@{
+                    CreateCommand = {
+                        [pscustomobject]@{
+                            CommandTimeout = 0
+                            CommandText = ''
+                            ExecuteNonQuery = { throw 'drop failed' }
+                        }
+                    }
+                }
+                Remove-StagingTableIfPresent -State @{
+                    UseStagingTable           = $true
+                    StagingSwapCompleted      = $false
+                    Connection                = $FailingConnection
+                    QualifiedStagingTableName = '[dbo].[__ETL_STAGE_TEST]'
+                }
+
+                Should -Invoke Write-ModuleLog -ModuleName 'Destination.MSSQL' -Times 1 -ParameterFilter {
+                    $Level -eq 'WARN' -and $Message -like 'Failed to remove staging table*'
+                }
+            }
+        }
+
+        Context 'Existing table compatibility checks' {
+            It 'throws when target table definition is missing in non-drop mode' {
+                Mock -ModuleName 'Destination.MSSQL' Get-ExistingTargetTableDefinition { $null }
+
+                {
+                    Assert-ExistingTargetTableCompatible -Connection ([pscustomobject]@{}) -SchemaName 'dbo' -TableName 'Users' -ColumnMetadata @{
+                        Name = [pscustomobject]@{ Name = 'Name'; SqlType = 'NVARCHAR(MAX)' }
+                    }
+                } | Should -Throw '*does not exist*'
+            }
+
+            It 'throws when expected column type does not match existing table definition' {
+                Mock -ModuleName 'Destination.MSSQL' Get-ExistingTargetTableDefinition {
+                    [pscustomobject]@{
+                        SchemaName = 'dbo'
+                        TableName  = 'Users'
+                        Columns    = @{
+                            Name = [pscustomobject]@{
+                                Name           = 'Name'
+                                SqlType        = 'NVARCHAR(50)'
+                                NormalizedType = 'NVARCHAR(50)'
+                            }
+                        }
+                    }
+                }
+
+                {
+                    Assert-ExistingTargetTableCompatible -Connection ([pscustomobject]@{}) -SchemaName 'dbo' -TableName 'Users' -ColumnMetadata @{
+                        Name = [pscustomobject]@{ Name = 'Name'; SqlType = 'NVARCHAR(MAX)' }
+                    }
+                } | Should -Throw '*incompatible type*'
+            }
         }
 }
 }
